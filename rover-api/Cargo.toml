@@ -1,0 +1,6 @@
+[package]
+name = "rpi-rover"
+version = "0.1.0"
+authors = ["Vadym S. Khondar <vadym@khondar.name>"]
+
+[dependencies]
