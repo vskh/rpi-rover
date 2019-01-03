@@ -57,8 +57,8 @@ echo "$HOSTAPD_CONF" > hostapd.conf
 DNSMASQ_CONF=`gen_config dnsmasq.template.conf AP_ADDRESS AP_ADDRESS_RANGE_MIN AP_ADDRESS_RANGE_MAX`
 echo "$DNSMASQ_CONF" > dnsmasq.conf
 
-trap sig_handler SIGTERM
-trap sig_handler SIGINT
+trap sig_handler TERM
+trap sig_handler INT
 
 /usr/sbin/hostapd -P /wifiap/hostapd.pid /wifiap/hostapd.conf &
 HOSTAPD_PID=$!
