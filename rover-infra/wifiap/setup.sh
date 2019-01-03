@@ -38,23 +38,28 @@ wait_pids() {
 PIDS=
 
 ifconfig wlan0 inet ${AP_ADDRESS} netmask ${AP_NETMASK} up
-AP_ADDRESS_BASE=`echo $AP_ADDRESS | sed 's/\.[0-9]\+$//g'`
-AP_ADDRESS_LAST=`echo $AP_ADDRESS | sed 's/.*\.\([0-9]\)\+$/\1/g'`
 
-export AP_ADDRESS_RANGE_MIN="$AP_ADDRESS_BASE.$(($AP_ADDRESS_LAST+1))"
-export AP_NETWORK=`ipcalc -n ${AP_ADDRESS} ${AP_NETMASK} | sed 's/NETWORK=//g'`
+AP_NETWORK=`ipcalc -n ${AP_ADDRESS} ${AP_NETMASK} | sed 's/NETWORK=//g'`
+AP_BROADCAST=`ipcalc -b ${AP_ADDRESS} ${AP_NETMASK} | sed 's/BROADCAST=//g'`
 
+AP_ADDRESS_MIN_BASE=`echo ${AP_ADDRESS} | sed 's/\.[0-9]\+$//g'`
+AP_ADDRESS_MIN=`echo ${AP_ADDRESS} | sed 's/.*\.\([0-9]\)\+$/\1/g'`
+AP_ADDRESS_MAX_BASE=`echo ${AP_BROADCAST} | sed 's/\.[0-9]\+$//g'`
+AP_ADDRESS_MAX=`echo ${AP_BROADCAST} | sed 's/.*\.\([0-9]\)\+$/\1/g'`
+
+export AP_ADDRESS_RANGE_MIN="${AP_ADDRESS_MIN_BASE}.$((${AP_ADDRESS_MIN}+1))"
+export AP_ADDRESS_RANGE_MAX="${AP_ADDRESS_MAX_BASE}.$(($AP_ADDRESS_MAX-1))"
 
 HOSTAPD_CONF=`gen_config hostapd.template.conf COUNTRY_CODE INTERFACE SSID WPA_PASSPHRASE`
 echo "$HOSTAPD_CONF" > hostapd.conf
 
-DHCPD_CONF=`gen_config dhcpd.template.conf AP_ADDRESS AP_ADDRESS_MIN AP_NETMASK AP_NETWORK`
-echo "$DHCPD_CONF" > dhcpd.conf
-touch /var/lib/dhcp/dhcpd.leases
+DNSMASQ_CONF=`gen_config dnsmasq.template.conf AP_ADDRESS_RANGE_MIN AP_ADDRESS_RANGE_MAX`
+echo "$DNSMASQ_CONF" > dnsmasq.conf
 
 trap sig_handler SIGTERM
 
 /usr/sbin/hostapd -P /wifiap/hostapd.pid /wifiap/hostapd.conf &
+HOSTAPD_PID=$!
 HOSTAPD_RV=$?
 
 if [ $HOSTAPD_RV -ne 0 ];
@@ -63,25 +68,23 @@ then
     exit 1
 fi
 
-HOSTAPD_PID=`cat /wifiap/hostapd.pid`
-
-echo "Launched HostAPd with PID $HOSTAPD_PID."
+echo "Launched hostapd with PID $HOSTAPD_PID."
 
 PIDS="$PIDS $HOSTAPD_PID"
 
-/usr/sbin/dhcpd -f -pf /wifiap/dhcpd.pid -cf /wifiap/dhcpd.conf &
-DHCPD_RV=$?
+/usr/sbin/dnsmasq -k --conf-file /wifiap/dnsmasq.conf &
+DNSMASQ_PID=$!
+DNSMASQ_RV=$?
 
-if [ $DHCPD_RV -ne 0 ];
+if [ $DNSMASQ_RV -ne 0 ];
 then
-    echo "Failed to launch dhcpd."
+    echo "Failed to launch dnsmasq."
     exit 1
 fi
 
-DHCPD_PID=`cat /wifiap/dhcpd.pid`
-echo "Launched DHCPD with PID $DHCPD_PID."
+echo "Launched dnsmasq with PID $DNSMASQ_PID."
 
-PIDS="$PIDS $DHCPD_PID"
+PIDS="$PIDS $DNSMASQ_PID"
 
 echo "Launched WiFi Access Point."
 
