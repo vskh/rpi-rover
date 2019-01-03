@@ -1,0 +1,10 @@
+version: '3'
+services:
+  wifiap:
+    build: ./wifiap
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+    network_mode: "host"
+    privileged: true
