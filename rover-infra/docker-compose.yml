@@ -1,10 +1,20 @@
 version: '3'
+
 services:
   wifiap:
     build: ./wifiap
-    deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 3s
+    image: wifiap:lastest
+    restart: always
     network_mode: "host"
     privileged: true
+
+  rproxy:
+    image: "nginx:alpine"
+    ports:
+      - 8080:80
+    volumes:
+      - ./rproxy/nginx.conf:/etc/nginx/nginx.conf
+      - ./rproxy/data:/data
+    restart: always
+
+# end

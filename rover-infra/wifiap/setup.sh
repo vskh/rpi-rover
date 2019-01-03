@@ -18,20 +18,21 @@ gen_config()
 
 sig_handler() {
     SIGNO=$1
-    for pid in $PIDS;
+    echo "Received signal ${SIGNO}"
+    for pid in ${PIDS};
     do
-        kill -$SIGNO "$pid"
-        wait "$pid"
+        kill -${SIGNO} ${pid}
+        wait ${pid}
     done
 
-    exit $((128+$SIGNO))
+    exit $((128+${SIGNO}))
 }
 
 wait_pids() {
-    for pid in $PIDS;
+    for pid in ${PIDS};
     do
-        echo "Awaiting while PID $pid is running..."
-        wait "$pid"
+        echo "Awaiting while PID ${pid} is running..."
+        wait ${pid}
     done
 }
 
@@ -43,9 +44,9 @@ AP_NETWORK=`ipcalc -n ${AP_ADDRESS} ${AP_NETMASK} | sed 's/NETWORK=//g'`
 AP_BROADCAST=`ipcalc -b ${AP_ADDRESS} ${AP_NETMASK} | sed 's/BROADCAST=//g'`
 
 AP_ADDRESS_MIN_BASE=`echo ${AP_ADDRESS} | sed 's/\.[0-9]\+$//g'`
-AP_ADDRESS_MIN=`echo ${AP_ADDRESS} | sed 's/.*\.\([0-9]\)\+$/\1/g'`
+AP_ADDRESS_MIN=`echo ${AP_ADDRESS} | sed 's/.*\.\([0-9]\+\)$/\1/g'`
 AP_ADDRESS_MAX_BASE=`echo ${AP_BROADCAST} | sed 's/\.[0-9]\+$//g'`
-AP_ADDRESS_MAX=`echo ${AP_BROADCAST} | sed 's/.*\.\([0-9]\)\+$/\1/g'`
+AP_ADDRESS_MAX=`echo ${AP_BROADCAST} | sed 's/.*\.\([0-9]\+\)$/\1/g'`
 
 export AP_ADDRESS_RANGE_MIN="${AP_ADDRESS_MIN_BASE}.$((${AP_ADDRESS_MIN}+1))"
 export AP_ADDRESS_RANGE_MAX="${AP_ADDRESS_MAX_BASE}.$(($AP_ADDRESS_MAX-1))"
@@ -57,6 +58,7 @@ DNSMASQ_CONF=`gen_config dnsmasq.template.conf AP_ADDRESS AP_ADDRESS_RANGE_MIN A
 echo "$DNSMASQ_CONF" > dnsmasq.conf
 
 trap sig_handler SIGTERM
+trap sig_handler SIGINT
 
 /usr/sbin/hostapd -P /wifiap/hostapd.pid /wifiap/hostapd.conf &
 HOSTAPD_PID=$!
@@ -72,7 +74,7 @@ echo "Launched hostapd with PID $HOSTAPD_PID."
 
 PIDS="$PIDS $HOSTAPD_PID"
 
-/usr/sbin/dnsmasq -k --conf-file /wifiap/dnsmasq.conf &
+/usr/sbin/dnsmasq -d --conf-file=/wifiap/dnsmasq.conf &
 DNSMASQ_PID=$!
 DNSMASQ_RV=$?
 
