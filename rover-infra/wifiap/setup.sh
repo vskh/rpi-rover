@@ -18,13 +18,20 @@ gen_config()
 
 sig_handler() {
     SIGNO=$1
-    for pid in ${PIDS[*]};
+    for pid in $PIDS;
     do
         kill -$SIGNO "$pid"
         wait "$pid"
     done
 
     exit $((128+$SIGNO))
+}
+
+wait_pids() {
+    for pid in $PIDS;
+    do
+        wait "$pid"
+    done
 }
 
 PIDS=
@@ -46,23 +53,27 @@ HOSTAPD_RV=$?
 
 if [ $HOSTAPD_RV -ne 0 ];
 then
-    echo "Failed to launch hostapd"
+    echo "Failed to launch hostapd."
     exit 1
 fi
 
-PIDS[1]=`cat /wifiap/hostapd.pid`
+PIDS="$PIDS `cat /wifiap/hostapd.pid`"
 
 /usr/sbin/dhcpd -pf /wifiap/dhcpd.pid -cf /wifiap/dhcpd.conf
 DHCPD_RV=$?
 
 if [ $DHCPD_RV -ne 0 ];
 then
-    echo "Failed to launch dhcpd"
+    echo "Failed to launch dhcpd."
     exit 1
 fi
 
-PIDS[2]=`cat /wifiap/dhcpd.pid`
+PIDS="$PIDS `cat /wifiap/dhcpd.pid`"
 
-echo "Launched WiFi Access Point"
+echo "Launched WiFi Access Point."
+
+wait_pids
+
+echo "WiFi Access Point shut down."
 
 # end
