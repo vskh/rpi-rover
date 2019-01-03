@@ -42,7 +42,7 @@ touch /var/lib/dhcp/dhcpd.leases
 trap sig_handler SIGTERM
 
 /usr/sbin/hostapd -B -P /wifiap/hostapd.pid /wifiap/hostapd.conf
-HOSTAPD_RV=`$?`
+HOSTAPD_RV=$?
 
 if [ $HOSTAPD_RV -ne 0 ];
 then
@@ -53,7 +53,7 @@ fi
 PIDS[1]=`cat /wifiap/hostapd.pid`
 
 /usr/sbin/dhcpd -pf /wifiap/dhcpd.pid -cf /wifiap/dhcpd.conf
-DHCPD_RV=`$?`
+DHCPD_RV=$?
 
 if [ $DHCPD_RV -ne 0 ];
 then
