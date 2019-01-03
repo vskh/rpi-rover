@@ -38,18 +38,23 @@ wait_pids() {
 PIDS=
 
 ifconfig wlan0 inet ${AP_ADDRESS} netmask ${AP_NETMASK} up
+AP_ADDRESS_BASE=`echo $AP_ADDRESS | sed 's/\.[0-9]\+$//g'`
+AP_ADDRESS_LAST=`echo $AP_ADDRESS | sed 's/.*\.\([0-9]\)\+$/\1/g'`
+
+export AP_ADDRESS_RANGE_MIN="$AP_ADDRESS_BASE.$(($AP_ADDRESS_LAST+1))"
 export AP_NETWORK=`ipcalc -n ${AP_ADDRESS} ${AP_NETMASK} | sed 's/NETWORK=//g'`
+
 
 HOSTAPD_CONF=`gen_config hostapd.template.conf COUNTRY_CODE INTERFACE SSID WPA_PASSPHRASE`
 echo "$HOSTAPD_CONF" > hostapd.conf
 
-DHCPD_CONF=`gen_config dhcpd.template.conf AP_ADDRESS AP_NETMASK AP_NETWORK`
+DHCPD_CONF=`gen_config dhcpd.template.conf AP_ADDRESS AP_ADDRESS_MIN AP_NETMASK AP_NETWORK`
 echo "$DHCPD_CONF" > dhcpd.conf
 touch /var/lib/dhcp/dhcpd.leases
 
 trap sig_handler SIGTERM
 
-/usr/sbin/hostapd -B -P /wifiap/hostapd.pid /wifiap/hostapd.conf
+/usr/sbin/hostapd -P /wifiap/hostapd.pid /wifiap/hostapd.conf &
 HOSTAPD_RV=$?
 
 if [ $HOSTAPD_RV -ne 0 ];
@@ -64,7 +69,7 @@ echo "Launched HostAPd with PID $HOSTAPD_PID."
 
 PIDS="$PIDS $HOSTAPD_PID"
 
-/usr/sbin/dhcpd -pf /wifiap/dhcpd.pid -cf /wifiap/dhcpd.conf
+/usr/sbin/dhcpd -f -pf /wifiap/dhcpd.pid -cf /wifiap/dhcpd.conf &
 DHCPD_RV=$?
 
 if [ $DHCPD_RV -ne 0 ];
