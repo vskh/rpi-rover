@@ -58,7 +58,11 @@ then
     exit 1
 fi
 
-PIDS="$PIDS `cat /wifiap/hostapd.pid`"
+HOSTAPD_PID=`cat /wifiap/hostapd.pid`
+
+echo "Launched HostAPd with PID $HOSTAPD_PID."
+
+PIDS="$PIDS $HOSTAPD_PID"
 
 /usr/sbin/dhcpd -pf /wifiap/dhcpd.pid -cf /wifiap/dhcpd.conf
 DHCPD_RV=$?
@@ -69,7 +73,10 @@ then
     exit 1
 fi
 
-PIDS="$PIDS `cat /wifiap/dhcpd.pid`"
+DHCPD_PID=`cat /wifiap/dhcpd.pid`
+echo "Launched DHCPD with PID $DHCPD_PID."
+
+PIDS="$PIDS $DHCPD_PID"
 
 echo "Launched WiFi Access Point."
 
