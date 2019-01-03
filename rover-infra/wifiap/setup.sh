@@ -30,6 +30,7 @@ sig_handler() {
 wait_pids() {
     for pid in $PIDS;
     do
+        echo "Awaiting while PID $pid is running..."
         wait "$pid"
     done
 }
