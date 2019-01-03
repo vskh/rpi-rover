@@ -53,7 +53,7 @@ export AP_ADDRESS_RANGE_MAX="${AP_ADDRESS_MAX_BASE}.$(($AP_ADDRESS_MAX-1))"
 HOSTAPD_CONF=`gen_config hostapd.template.conf COUNTRY_CODE INTERFACE SSID WPA_PASSPHRASE`
 echo "$HOSTAPD_CONF" > hostapd.conf
 
-DNSMASQ_CONF=`gen_config dnsmasq.template.conf AP_ADDRESS_RANGE_MIN AP_ADDRESS_RANGE_MAX`
+DNSMASQ_CONF=`gen_config dnsmasq.template.conf AP_ADDRESS AP_ADDRESS_RANGE_MIN AP_ADDRESS_RANGE_MAX`
 echo "$DNSMASQ_CONF" > dnsmasq.conf
 
 trap sig_handler SIGTERM
