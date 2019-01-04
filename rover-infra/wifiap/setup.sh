@@ -36,9 +36,21 @@ wait_pids() {
     done
 }
 
+pause() {
+    NUM=$1
+    while [ $NUM -gt 0 ];
+    do
+      echo -n "."
+      sleep 1
+      NUM=$(($NUM-1))
+    done
+}
+
 PIDS=
 
-ifconfig wlan0 inet ${AP_ADDRESS} netmask ${AP_NETMASK} up
+echo "Configuring wlan0..."
+ifconfig wlan0 up
+ifconfig wlan0 inet ${AP_ADDRESS} netmask ${AP_NETMASK}
 
 AP_NETWORK=`ipcalc -n ${AP_ADDRESS} ${AP_NETMASK} | sed 's/NETWORK=//g'`
 AP_BROADCAST=`ipcalc -b ${AP_ADDRESS} ${AP_NETMASK} | sed 's/BROADCAST=//g'`
@@ -57,10 +69,11 @@ echo "$HOSTAPD_CONF" > hostapd.conf
 DNSMASQ_CONF=`gen_config dnsmasq.template.conf AP_ADDRESS AP_ADDRESS_RANGE_MIN AP_ADDRESS_RANGE_MAX`
 echo "$DNSMASQ_CONF" > dnsmasq.conf
 
-trap sig_handler SIGTERM
-trap sig_handler SIGINT
+trap "sig_handler 15" TERM
+trap "sig_handler 2" INT
 
-/usr/sbin/hostapd -P /wifiap/hostapd.pid /wifiap/hostapd.conf &
+echo "Launching hostapd..."
+/usr/sbin/hostapd /wifiap/hostapd.conf &
 HOSTAPD_PID=$!
 HOSTAPD_RV=$?
 
@@ -68,6 +81,15 @@ if [ $HOSTAPD_RV -ne 0 ];
 then
     echo "Failed to launch hostapd."
     exit 1
+fi
+
+echo "Waiting to confirm successful launch"
+pause 10
+
+if [ `ps ax | grep -v grep | grep -q $HOSTAPD_PID` ];
+then
+    echo "Failed to launch hostapd."
+    exit 2
 fi
 
 echo "Launched hostapd with PID $HOSTAPD_PID."
