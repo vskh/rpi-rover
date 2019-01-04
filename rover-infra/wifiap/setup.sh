@@ -83,7 +83,7 @@ then
     exit 1
 fi
 
-echo "Waiting to confirm successful launch"
+echo -n "Waiting to confirm successful launch"
 pause 10
 
 if [ `ps ax | grep -v grep | grep -q $HOSTAPD_PID` ];
