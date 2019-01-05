@@ -12,6 +12,14 @@ fn main() {
     println!("Starting rover...");
     
     rover.move_forward(10);
-    thread::sleep(time::Duration::from_secs(1));
+    thread::sleep(time::Duration::from_secs(3));
+    rover.rotate_left(10);
+    thread::sleep(time::Duration::from_secs(3));
+    rover.move_backward(10);
+    thread::sleep(time::Duration::from_secs(3));
+    rover.rotate_right(10);
+    thread::sleep(time::Duration::from_secs(3));
     rover.stop();
+
+    println!("Finished!");
 }
