@@ -47,12 +47,13 @@ impl RobohatRover {
 
     fn init(mut gpio: Gpio) -> Result<Gpio> {
         gpio.set_mode(GPIO_MOTOR_L1, Mode::Output);
-        gpio.write(GPIO_MOTOR_L1, Level::Low);
         gpio.set_mode(GPIO_MOTOR_L2, Mode::Output);
-        gpio.write(GPIO_MOTOR_L2, Level::Low);
         gpio.set_mode(GPIO_MOTOR_R1, Mode::Output);
-        gpio.write(GPIO_MOTOR_R1, Level::Low);
         gpio.set_mode(GPIO_MOTOR_R2, Mode::Output);
+
+        gpio.write(GPIO_MOTOR_L1, Level::Low);
+        gpio.write(GPIO_MOTOR_L2, Level::Low);
+        gpio.write(GPIO_MOTOR_R1, Level::Low);
         gpio.write(GPIO_MOTOR_R2, Level::Low);
 
         Ok(gpio)
@@ -72,5 +73,26 @@ impl api::Rover for RobohatRover {
         self.gpio.write(GPIO_MOTOR_L2, Level::Low);
         self.gpio.write(GPIO_MOTOR_R1, Level::High);
         self.gpio.write(GPIO_MOTOR_R2, Level::Low);
+    }
+
+    fn move_backward(&self, speed: u32) {
+        self.gpio.write(GPIO_MOTOR_L1, Level::Low);
+        self.gpio.write(GPIO_MOTOR_L2, Level::High);
+        self.gpio.write(GPIO_MOTOR_R1, Level::Low);
+        self.gpio.write(GPIO_MOTOR_R2, Level::High);
+    }
+
+    fn rotate_left(&self, speed: u32) {
+        self.gpio.write(GPIO_MOTOR_L1, Level::Low);
+        self.gpio.write(GPIO_MOTOR_L2, Level::High);
+        self.gpio.write(GPIO_MOTOR_R1, Level::High);
+        self.gpio.write(GPIO_MOTOR_R2, Level::Low);
+    }
+
+    fn rotate_right(&self, speed: u32) {
+        self.gpio.write(GPIO_MOTOR_L1, Level::High);
+        self.gpio.write(GPIO_MOTOR_L2, Level::Low);
+        self.gpio.write(GPIO_MOTOR_R1, Level::Low);
+        self.gpio.write(GPIO_MOTOR_R2, Level::High);
     }
 }

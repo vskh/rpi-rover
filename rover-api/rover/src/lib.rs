@@ -2,6 +2,9 @@ pub mod api {
     pub trait Rover {
         fn stop(&self);
         fn move_forward(&self, speed: u32);
+        fn move_backward(&self, speed: u32);
+        fn rotate_right(&self, speed: u32);
+        fn rotate_left(&self, speed: u32);
     }
 }
 
