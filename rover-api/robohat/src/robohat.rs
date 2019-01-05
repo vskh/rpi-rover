@@ -4,7 +4,6 @@ use std::fmt::{Display, Formatter};
 use rppal::gpio::{Gpio, Mode, Level, Error as RppalError};
 //use rppal::pwm::{Pwm, Channel};
 use rover::api;
-use rover::util;
 
 // motors control pins in BCM numbering
 const GPIO_MOTOR_L1: u8 = 16;
@@ -63,14 +62,14 @@ impl RobohatRover {
 impl api::Rover for RobohatRover {
     fn stop(&self) {
         self.gpio.write(GPIO_MOTOR_L1, Level::Low);
-        self.gpio.write(GPIO_MOTOR_L1, Level::Low);
+        self.gpio.write(GPIO_MOTOR_L2, Level::Low);
         self.gpio.write(GPIO_MOTOR_R1, Level::Low);
         self.gpio.write(GPIO_MOTOR_R2, Level::Low);
     }
 
     fn move_forward(&self, speed: u32) {
         self.gpio.write(GPIO_MOTOR_L1, Level::High);
-        self.gpio.write(GPIO_MOTOR_L1, Level::Low);
+        self.gpio.write(GPIO_MOTOR_L2, Level::Low);
         self.gpio.write(GPIO_MOTOR_R1, Level::High);
         self.gpio.write(GPIO_MOTOR_R2, Level::Low);
     }
