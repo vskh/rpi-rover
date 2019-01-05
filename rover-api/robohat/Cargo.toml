@@ -1,0 +1,8 @@
+[package]
+name = "robohat"
+version = "0.1.0"
+authors = ["Vadym S. Khondar <vadym@khondar.name>"]
+
+[dependencies]
+rppal = "0.9.0"
+rover = { path = "../rover" }
