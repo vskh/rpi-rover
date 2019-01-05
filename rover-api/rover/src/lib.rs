@@ -1,5 +1,6 @@
 pub mod api {
     pub trait Rover {
-        fn move_forward(&self, speed: &u32);
+        fn stop(&self);
+        fn move_forward(&self, speed: u32);
     }
 }

@@ -1,0 +1,8 @@
+[package]
+name = "demo"
+version = "0.1.0"
+authors = ["Vadym S. Khondar <vadym@khondar.name>"]
+
+[dependencies]
+rover = { path = "../rover" }
+robohat = { path = "../robohat" }

@@ -1,3 +1,5 @@
+use std::fmt;
+use std::fmt::{Display, Formatter};
 use rppal::gpio::{Gpio, Mode, Level, Error as RppalError};
 //use rppal::pwm::{Pwm, Channel};
 use rover::api;
@@ -15,17 +17,31 @@ const GPIO_MOTOR_L2: u8 = 35;
 const GPIO_MOTOR_R1: u8 = 33;
 const GPIO_MOTOR_R2: u8 = 32;
 
+type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug)]
+pub enum Error {
+    GpioInitiaizationFailure(RppalError),
+    InvalidGpioPin(usize)
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Error::GpioInitiaizationFailure(inner) =>
+                write!(f, "GPIO initialization failed: {}", inner),
+            Error::InvalidGpioPin(pin) =>
+                write!(f, "Invalid GPIO pin: {}", pin)
+        }
+    }
+}
+
 pub struct RobohatRover {
     gpio: Gpio
 }
 
-pub enum Error {
-    GpioInitiaizationFailure(RppalError),
-    InvalidGpioPin
-}
-
 impl RobohatRover {
-    pub fn new() -> Result<RobohatRover, Error> {
+    pub fn new() -> Result<RobohatRover> {
         Ok(RobohatRover {
             gpio: RobohatRover::init(
                 Gpio::new().map_err(
@@ -35,7 +51,7 @@ impl RobohatRover {
         })
     }
 
-    fn init(mut gpio: Gpio) -> Result<Gpio, Error> {
+    fn init(mut gpio: Gpio) -> Result<Gpio> {
         gpio.set_mode(GPIO_MOTOR_L1, Mode::Output);
         gpio.write(GPIO_MOTOR_L1, Level::Low);
         gpio.set_mode(GPIO_MOTOR_L2, Mode::Output);
@@ -48,18 +64,25 @@ impl RobohatRover {
         Ok(gpio)
     }
 
-    fn bcm2pin(gpio_id: usize) -> Result<u8, Error> {
+    fn bcm2pin(gpio_id: usize) -> Result<u8> {
         let pin_id = GPIO_TO_PIN_REV3[gpio_id];
         if pin_id > 0 {
             Ok(pin_id as u8)
         } else {
-            Err(Error::InvalidGpioPin)
+            Err(Error::InvalidGpioPin(gpio_id))
         }
     }
 }
 
 impl api::Rover for RobohatRover {
-    fn move_forward(&self, speed: &u32) {
+    fn stop(&self) {
+        self.gpio.write(GPIO_MOTOR_L1, Level::Low);
+        self.gpio.write(GPIO_MOTOR_L1, Level::Low);
+        self.gpio.write(GPIO_MOTOR_R1, Level::Low);
+        self.gpio.write(GPIO_MOTOR_R2, Level::Low);
+    }
+
+    fn move_forward(&self, speed: u32) {
         self.gpio.write(GPIO_MOTOR_L1, Level::High);
         self.gpio.write(GPIO_MOTOR_L1, Level::Low);
         self.gpio.write(GPIO_MOTOR_R1, Level::High);
