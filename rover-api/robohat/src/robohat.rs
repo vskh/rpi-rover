@@ -1,8 +1,9 @@
+use std::sync::{Arc, Mutex};
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
 use rppal::gpio::{Gpio, Mode, Level, Error as RppalError};
-//use rppal::pwm::{Pwm, Channel};
+use util::SoftPwm;
 use rover::api;
 
 // motors control pins in BCM numbering
@@ -16,7 +17,7 @@ type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug)]
 pub enum Error {
     GpioInitiaizationFailure(RppalError),
-    InvalidGpioChannel(u8)
+    InvalidGpioChannel(u8),
 }
 
 impl Display for Error {
@@ -31,68 +32,70 @@ impl Display for Error {
 }
 
 pub struct RobohatRover {
-    gpio: Gpio
+    left_motor: (SoftPwm, SoftPwm),
+    right_motor: (SoftPwm, SoftPwm),
 }
 
 impl RobohatRover {
     pub fn new() -> Result<RobohatRover> {
-        Ok(RobohatRover {
-            gpio: RobohatRover::init(
+        let gpio = Arc::new(
+            Mutex::new(
                 Gpio::new().map_err(
                     |e| -> Error { Error::GpioInitiaizationFailure(e) }
                 )?
-            )?
+            )
+        );
+
+        let lm = (
+            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_L1, 20.0, 0.0),
+            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_L2, 20.0, 0.0)
+        );
+
+        let rm = (
+            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_R1, 20.0, 0.0),
+            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_R2, 20.0, 0.0)
+        );
+
+        Ok(RobohatRover {
+            left_motor: lm,
+            right_motor: rm
         })
-    }
-
-    fn init(mut gpio: Gpio) -> Result<Gpio> {
-        gpio.set_mode(GPIO_MOTOR_L1, Mode::Output);
-        gpio.set_mode(GPIO_MOTOR_L2, Mode::Output);
-        gpio.set_mode(GPIO_MOTOR_R1, Mode::Output);
-        gpio.set_mode(GPIO_MOTOR_R2, Mode::Output);
-
-        gpio.write(GPIO_MOTOR_L1, Level::Low);
-        gpio.write(GPIO_MOTOR_L2, Level::Low);
-        gpio.write(GPIO_MOTOR_R1, Level::Low);
-        gpio.write(GPIO_MOTOR_R2, Level::Low);
-
-        Ok(gpio)
     }
 }
 
 impl api::Rover for RobohatRover {
-    fn stop(&self) {
-        self.gpio.write(GPIO_MOTOR_L1, Level::Low);
-        self.gpio.write(GPIO_MOTOR_L2, Level::Low);
-        self.gpio.write(GPIO_MOTOR_R1, Level::Low);
-        self.gpio.write(GPIO_MOTOR_R2, Level::Low);
+    fn stop(&mut self) {
+        self.left_motor.0.set_duty_cycle(0.0);
+        self.left_motor.1.set_duty_cycle(0.0);
+        self.right_motor.0.set_duty_cycle(0.0);
+        self.right_motor.1.set_duty_cycle(0.0);
     }
 
-    fn move_forward(&self, speed: u32) {
-        self.gpio.write(GPIO_MOTOR_L1, Level::High);
-        self.gpio.write(GPIO_MOTOR_L2, Level::Low);
-        self.gpio.write(GPIO_MOTOR_R1, Level::High);
-        self.gpio.write(GPIO_MOTOR_R2, Level::Low);
+    fn move_forward(&mut self, speed: f32) {
+        self.left_motor.0.set_duty_cycle(speed);
+        self.left_motor.1.set_duty_cycle(0.0);
+        self.right_motor.0.set_duty_cycle(speed);
+        self.right_motor.1.set_duty_cycle(0.0);
     }
 
-    fn move_backward(&self, speed: u32) {
-        self.gpio.write(GPIO_MOTOR_L1, Level::Low);
-        self.gpio.write(GPIO_MOTOR_L2, Level::High);
-        self.gpio.write(GPIO_MOTOR_R1, Level::Low);
-        self.gpio.write(GPIO_MOTOR_R2, Level::High);
+    fn move_backward(&mut self, speed: f32) {
+        self.left_motor.0.set_duty_cycle(0.0);
+        self.left_motor.1.set_duty_cycle(speed);
+        self.right_motor.0.set_duty_cycle(0.0);
+        self.right_motor.1.set_duty_cycle(speed);
     }
 
-    fn rotate_left(&self, speed: u32) {
-        self.gpio.write(GPIO_MOTOR_L1, Level::Low);
-        self.gpio.write(GPIO_MOTOR_L2, Level::High);
-        self.gpio.write(GPIO_MOTOR_R1, Level::High);
-        self.gpio.write(GPIO_MOTOR_R2, Level::Low);
+    fn spin_left(&mut self, speed: f32) {
+        self.left_motor.0.set_duty_cycle(0.0);
+        self.left_motor.1.set_duty_cycle(speed);
+        self.right_motor.0.set_duty_cycle(speed);
+        self.right_motor.1.set_duty_cycle(0.0);
     }
 
-    fn rotate_right(&self, speed: u32) {
-        self.gpio.write(GPIO_MOTOR_L1, Level::High);
-        self.gpio.write(GPIO_MOTOR_L2, Level::Low);
-        self.gpio.write(GPIO_MOTOR_R1, Level::Low);
-        self.gpio.write(GPIO_MOTOR_R2, Level::High);
+    fn spin_right(&mut self, speed: f32) {
+        self.left_motor.0.set_duty_cycle(speed);
+        self.left_motor.1.set_duty_cycle(0.0);
+        self.right_motor.0.set_duty_cycle(0.0);
+        self.right_motor.1.set_duty_cycle(speed);
     }
 }

@@ -7,8 +7,8 @@ use rppal::gpio::{Gpio, Mode, Level};
 
 enum PwmUpdate {
     Stop,
-    Frequency(f64),
-    DutyCycle(f64),
+    Frequency(f32),
+    DutyCycle(f32),
 }
 
 #[derive(Debug)]
@@ -24,7 +24,7 @@ pub struct SoftPwm {
 }
 
 impl SoftPwm {
-    pub fn new(gpio: Arc<Mutex<Gpio>>, pin: u8, frequency: f64, duty_cycle: f64) -> SoftPwm {
+    pub fn new(gpio: Arc<Mutex<Gpio>>, pin: u8, frequency: f32, duty_cycle: f32) -> SoftPwm {
         {
             let mut g = gpio.lock().unwrap();
             g.set_mode(pin, Mode::Output);
@@ -50,13 +50,13 @@ impl SoftPwm {
         }
     }
 
-    pub fn set_frequency(&mut self, new_frequency: f64) -> Result<()> {
+    pub fn set_frequency(&mut self, new_frequency: f32) -> Result<()> {
         self.channel
             .send(PwmUpdate::Frequency(new_frequency))
             .map_err(|_| { SoftPwmError::UpdateError })
     }
 
-    pub fn set_duty_cycle(&mut self, new_duty_cycle: f64) -> Result<()> {
+    pub fn set_duty_cycle(&mut self, new_duty_cycle: f32) -> Result<()> {
         self.channel
             .send(PwmUpdate::DutyCycle(new_duty_cycle))
             .map_err(|_| { SoftPwmError::UpdateError })
@@ -66,8 +66,8 @@ impl SoftPwm {
 struct SoftPwmWorker {
     gpio: Arc<Mutex<Gpio>>,
     pin: u8,
-    frequency: f64,
-    duty_cycle: f64,
+    frequency: f32,
+    duty_cycle: f32,
     channel: mpsc::Receiver<PwmUpdate>,
     time_on_ns: u64,
     time_off_ns: u64
@@ -76,8 +76,8 @@ struct SoftPwmWorker {
 impl SoftPwmWorker {
     fn new(gpio: Arc<Mutex<Gpio>>,
            pin: u8,
-           init_frequency: f64,
-           init_duty_cycle: f64,
+           init_frequency: f32,
+           init_duty_cycle: f32,
            channel: mpsc::Receiver<PwmUpdate>) -> SoftPwmWorker {
         SoftPwmWorker {
             gpio: gpio,
@@ -90,11 +90,12 @@ impl SoftPwmWorker {
         }
     }
 
-    fn update_times(&self) -> (f64, f64) {
+    fn update_times(&mut self) {
         let period = 1.0 / self.frequency;
         let time_on_ns = period * self.duty_cycle * 1000000000.0;
         let time_off_ns = (period - time_on_ns) * 1000000000.0;
-        (time_on_ns, time_off_ns)
+        self.time_on_ns = time_on_ns as u64;
+        self.time_off_ns = time_off_ns as u64;
     }
 
     fn check_updates(&mut self) -> Option<(u64, u64)> {
