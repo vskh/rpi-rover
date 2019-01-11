@@ -1,10 +1,10 @@
 pub mod api {
     pub trait Rover {
         fn stop(&mut self);
-        fn move_forward(&mut self, speed: f32);
-        fn move_backward(&mut self, speed: f32);
-        fn spin_right(&mut self, speed: f32);
-        fn spin_left(&mut self, speed: f32);
+        fn move_forward(&mut self, speed: u8);
+        fn move_backward(&mut self, speed: u8);
+        fn spin_right(&mut self, speed: u8);
+        fn spin_left(&mut self, speed: u8);
     }
 }
 

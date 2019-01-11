@@ -27,7 +27,7 @@ fn init_screen() -> (Stdin, RawTerminal<Stdout>) {
 
 fn drive(stdin: Stdin, mut stdout: RawTerminal<Stdout>, rover: &mut dyn Rover) -> RawTerminal<Stdout> {
     let (sx, sy) = termion::terminal_size().unwrap();
-    let mut speed: f32 = 0.0;
+    let mut speed: u8 = 128;
 
     write!(
         stdout,
@@ -51,16 +51,10 @@ fn drive(stdin: Stdin, mut stdout: RawTerminal<Stdout>, rover: &mut dyn Rover) -
         match c.unwrap() {
             Key::Esc => break,
             Key::PageUp => {
-                speed += 0.1;
-                if speed > 1.0 {
-                    speed = 1.0;
-                }
+                speed = speed.saturating_add(1);
             }
             Key::PageDown => {
-                speed -= 0.1;
-                if speed < 0.0 {
-                    speed = 0.0;
-                }
+                speed = speed.saturating_sub(1);
             }
             Key::Left => {
                 rover.spin_left(speed);

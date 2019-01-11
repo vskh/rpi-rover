@@ -12,21 +12,27 @@ const GPIO_MOTOR_L2: u8 = 19;
 const GPIO_MOTOR_R1: u8 = 13;
 const GPIO_MOTOR_R2: u8 = 12;
 
-type Result<T> = std::result::Result<T, Error>;
+type Result<T> = std::result::Result<T, RobohatError>;
 
 #[derive(Debug)]
-pub enum Error {
-    GpioInitiaizationFailure(RppalError),
+pub enum RobohatError {
+    Gpio,
+    GpioInitiaization(RppalError),
     InvalidGpioChannel(u8),
+    InvalidValue(String)
 }
 
-impl Display for Error {
+impl Display for RobohatError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            Error::GpioInitiaizationFailure(inner) =>
+            RobohatError::Gpio =>
+                write!(f, "GPIO operation error."),
+            RobohatError::GpioInitiaization(inner) =>
                 write!(f, "GPIO initialization failed: {}", inner),
-            Error::InvalidGpioChannel(pin) =>
-                write!(f, "Invalid channel: {}", pin)
+            RobohatError::InvalidGpioChannel(pin) =>
+                write!(f, "Invalid channel: {}", pin),
+            RobohatError::InvalidValue(s) =>
+                write!(f, "Invalid value of argument '{}'.", s)
         }
     }
 }
@@ -41,61 +47,74 @@ impl RobohatRover {
         let gpio = Arc::new(
             Mutex::new(
                 Gpio::new().map_err(
-                    |e| -> Error { Error::GpioInitiaizationFailure(e) }
+                    |e| -> RobohatError { RobohatError::GpioInitiaization(e) }
                 )?
             )
         );
 
         let lm = (
-            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_L1, 25.0, 0.0),
-            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_L2, 25.0, 0.0)
+            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_L1, 10.0, 0.0),
+            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_L2, 10.0, 0.0)
         );
 
         let rm = (
-            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_R1, 25.0, 0.0),
-            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_R2, 25.0, 0.0)
+            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_R1, 10.0, 0.0),
+            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_R2, 10.0, 0.0)
         );
 
-        Ok(RobohatRover {
-            left_motor: lm,
-            right_motor: rm
-        })
+        Ok(
+            RobohatRover {
+                left_motor: lm,
+                right_motor: rm,
+            }
+        )
+    }
+
+    fn set_motor_speed(motor: &mut (SoftPwm, SoftPwm), speed: u8, forward: bool) -> Result<()> {
+        let frequency = speed as f32;
+        let duty_cycle = speed as f32 / 255.0;
+
+        if speed == 0 {
+            motor.0.set_duty_cycle(0.0).map_err(|e| { RobohatError::Gpio });
+            motor.1.set_duty_cycle(0.0).map_err(|e| { RobohatError::Gpio });
+        } else if forward {
+            motor.0.set_duty_cycle(speed as f32 / 100.0).map_err(|e| { RobohatError::Gpio });
+            motor.0.set_frequency(speed as f32).map_err(|e| { RobohatError::Gpio });
+            motor.1.set_duty_cycle(0.0).map_err(|e| { RobohatError::Gpio });
+        } else {
+            motor.0.set_duty_cycle(0.0).map_err(|e| { RobohatError::Gpio });
+            motor.1.set_duty_cycle(speed as f32 / 100.0).map_err(|e| { RobohatError::Gpio });
+            motor.1.set_frequency(speed as f32).map_err(|e| { RobohatError::Gpio });
+        }
+
+        Ok(())
     }
 }
 
 impl api::Rover for RobohatRover {
+
     fn stop(&mut self) {
-        self.left_motor.0.set_duty_cycle(0.0);
-        self.left_motor.1.set_duty_cycle(0.0);
-        self.right_motor.0.set_duty_cycle(0.0);
-        self.right_motor.1.set_duty_cycle(0.0);
+        RobohatRover::set_motor_speed(&mut (self.left_motor), 0, false).unwrap();
+        RobohatRover::set_motor_speed(&mut (self.right_motor), 0, false).unwrap();
     }
 
-    fn move_forward(&mut self, speed: f32) {
-        self.left_motor.0.set_duty_cycle(speed);
-        self.left_motor.1.set_duty_cycle(0.0);
-        self.right_motor.0.set_duty_cycle(speed);
-        self.right_motor.1.set_duty_cycle(0.0);
+    fn move_forward(&mut self, speed: u8) {
+        RobohatRover::set_motor_speed(&mut (self.left_motor), speed, true).unwrap();
+        RobohatRover::set_motor_speed(&mut (self.right_motor), speed, true).unwrap();
     }
 
-    fn move_backward(&mut self, speed: f32) {
-        self.left_motor.0.set_duty_cycle(0.0);
-        self.left_motor.1.set_duty_cycle(speed);
-        self.right_motor.0.set_duty_cycle(0.0);
-        self.right_motor.1.set_duty_cycle(speed);
+    fn move_backward(&mut self, speed: u8) {
+        RobohatRover::set_motor_speed(&mut (self.left_motor), speed, false).unwrap();
+        RobohatRover::set_motor_speed(&mut (self.right_motor), speed, false).unwrap();
     }
 
-    fn spin_left(&mut self, speed: f32) {
-        self.left_motor.0.set_duty_cycle(0.0);
-        self.left_motor.1.set_duty_cycle(speed);
-        self.right_motor.0.set_duty_cycle(speed);
-        self.right_motor.1.set_duty_cycle(0.0);
+    fn spin_right(&mut self, speed: u8) {
+        RobohatRover::set_motor_speed(&mut (self.left_motor), speed, true).unwrap();
+        RobohatRover::set_motor_speed(&mut (self.right_motor), speed, false).unwrap();
     }
 
-    fn spin_right(&mut self, speed: f32) {
-        self.left_motor.0.set_duty_cycle(speed);
-        self.left_motor.1.set_duty_cycle(0.0);
-        self.right_motor.0.set_duty_cycle(0.0);
-        self.right_motor.1.set_duty_cycle(speed);
+    fn spin_left(&mut self, speed: u8) {
+        RobohatRover::set_motor_speed(&mut (self.left_motor), speed, false).unwrap();
+        RobohatRover::set_motor_speed(&mut (self.right_motor), speed, true).unwrap();
     }
 }
