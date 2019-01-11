@@ -1,0 +1,9 @@
+[package]
+name = "ridecontrol"
+version = "0.1.0"
+authors = ["Vadym S. Khondar <vadym@khondar.name>"]
+
+[dependencies]
+"termion" = "1.5.1"
+"robohat" = { path = "../robohat" }
+"rover" = { path = "../rover" }

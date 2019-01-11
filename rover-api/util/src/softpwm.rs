@@ -28,6 +28,7 @@ impl SoftPwm {
         {
             let mut g = gpio.lock().unwrap();
             g.set_mode(pin, Mode::Output);
+            g.write(pin, Level::Low);
         }
 
         let (tx, rx) = mpsc::channel();
