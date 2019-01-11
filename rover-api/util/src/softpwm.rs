@@ -93,10 +93,10 @@ impl SoftPwmWorker {
 
     fn update_times(&mut self) {
         let period = 1.0 / self.frequency;
-        let time_on_ns = period * self.duty_cycle * 1000000000.0;
-        let time_off_ns = (period - time_on_ns) * 1000000000.0;
-        self.time_on_ns = time_on_ns as u64;
-        self.time_off_ns = time_off_ns as u64;
+        let time_on_ns = period * self.duty_cycle;
+        let time_off_ns = period - time_on_ns;
+        self.time_on_ns = (time_on_ns * 1000000000.0) as u64;
+        self.time_off_ns = (time_off_ns * 1000000000.0) as u64;
     }
 
     fn check_updates(&mut self) -> Option<(u64, u64)> {
@@ -125,23 +125,25 @@ impl SoftPwmWorker {
     fn run(&mut self) {
         loop {
             if let Some((time_on, _)) = self.check_updates() {
+//                println!("Pin {} HIGH for {} ns.", self.pin, time_on);
                 if time_on > 0 {
                     let gpio = self.gpio.lock().unwrap();
                     gpio.write(self.pin, Level::High);
+                    drop(gpio);
+                    thread::sleep(Duration::from_nanos(time_on));
                 }
-
-                thread::sleep(Duration::from_nanos(time_on));
             } else {
                 break;
             }
 
             if let Some((_, time_off)) = self.check_updates() {
+//                println!("Pin {} LOW for {} ns.", self.pin, time_off);
                 if time_off > 0 {
                     let gpio = self.gpio.lock().unwrap();
                     gpio.write(self.pin, Level::Low);
+                    drop(gpio);
+                    thread::sleep(Duration::from_nanos(time_off));
                 }
-
-                thread::sleep(Duration::from_nanos(time_off));
             } else {
                 break;
             }

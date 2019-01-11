@@ -47,13 +47,13 @@ impl RobohatRover {
         );
 
         let lm = (
-            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_L1, 20.0, 0.0),
-            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_L2, 20.0, 0.0)
+            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_L1, 25.0, 0.0),
+            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_L2, 25.0, 0.0)
         );
 
         let rm = (
-            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_R1, 20.0, 0.0),
-            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_R2, 20.0, 0.0)
+            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_R1, 25.0, 0.0),
+            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_R2, 25.0, 0.0)
         );
 
         Ok(RobohatRover {

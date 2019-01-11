@@ -27,33 +27,55 @@ fn init_screen() -> (Stdin, RawTerminal<Stdout>) {
 
 fn drive(stdin: Stdin, mut stdout: RawTerminal<Stdout>, rover: &mut dyn Rover) -> RawTerminal<Stdout> {
     let (sx, sy) = termion::terminal_size().unwrap();
+    let mut speed: f32 = 0.0;
 
-    write!(stdout,
-           "{}{}",
-           termion::cursor::Goto(sx / 2, sy / 2),
-           termion::clear::CurrentLine)
-        .unwrap();
+    write!(
+        stdout,
+        "{}{}Speed: {}",
+        termion::cursor::Goto(1, 2),
+        termion::clear::CurrentLine,
+        speed
+    ).unwrap();
+    write!(
+        stdout,
+        "{}{}",
+        termion::cursor::Goto(sx / 2, sy / 2),
+        termion::clear::CurrentLine
+    ).unwrap();
     println!("_");
     stdout.flush().unwrap();
 
     for c in stdin.keys() {
         write!(stdout, "{}", termion::cursor::Goto(sx / 2, sy / 2)).unwrap();
+
         match c.unwrap() {
             Key::Esc => break,
+            Key::PageUp => {
+                speed += 0.1;
+                if speed > 1.0 {
+                    speed = 1.0;
+                }
+            }
+            Key::PageDown => {
+                speed -= 0.1;
+                if speed < 0.0 {
+                    speed = 0.0;
+                }
+            }
             Key::Left => {
-                rover.spin_left(0.5);
+                rover.spin_left(speed);
                 println!("←");
             }
             Key::Right => {
-                rover.spin_right(0.5);
+                rover.spin_right(speed);
                 println!("→");
             }
             Key::Up => {
-                rover.move_forward(0.5);
+                rover.move_forward(speed);
                 println!("↑");
             }
             Key::Down => {
-                rover.move_backward(0.5);
+                rover.move_backward(speed);
                 println!("↓");
             }
             Key::Char(' ') => {
@@ -62,6 +84,15 @@ fn drive(stdin: Stdin, mut stdout: RawTerminal<Stdout>, rover: &mut dyn Rover) -
             }
             _ => {}
         }
+
+        write!(
+            stdout,
+            "{}{}Speed: {}",
+            termion::cursor::Goto(1, 2),
+            termion::clear::CurrentLine,
+            speed
+        ).unwrap();
+
         stdout.flush().unwrap();
     }
 
