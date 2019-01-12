@@ -7,7 +7,7 @@ use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::{IntoRawMode, RawTerminal};
 
-use rover::api::Rover;
+use rover::api::{Mover, Looker};
 use robohat::RobohatRover;
 
 fn init_screen() -> (Stdin, RawTerminal<Stdout>) {
@@ -25,9 +25,11 @@ fn init_screen() -> (Stdin, RawTerminal<Stdout>) {
     (stdin, stdout)
 }
 
-fn drive(stdin: Stdin, mut stdout: RawTerminal<Stdout>, rover: &mut dyn Rover) -> RawTerminal<Stdout> {
+fn drive<T: Mover + Looker>(stdin: Stdin, mut stdout: RawTerminal<Stdout>, rover: &mut T) -> RawTerminal<Stdout> {
     let (sx, sy) = termion::terminal_size().unwrap();
     let mut speed: u8 = 128;
+    let mut pan: i16 = 0;
+    let mut tilt: i16 = 0;
 
     write!(
         stdout,
@@ -35,6 +37,14 @@ fn drive(stdin: Stdin, mut stdout: RawTerminal<Stdout>, rover: &mut dyn Rover) -
         termion::cursor::Goto(1, 2),
         termion::clear::CurrentLine,
         speed
+    ).unwrap();
+    write!(
+        stdout,
+        "{}{}Looking at: [{}; {}]",
+        termion::cursor::Goto(1, 3),
+        termion::clear::CurrentLine,
+        pan,
+        tilt
     ).unwrap();
     write!(
         stdout,
@@ -72,6 +82,22 @@ fn drive(stdin: Stdin, mut stdout: RawTerminal<Stdout>, rover: &mut dyn Rover) -
                 rover.move_backward(speed);
                 println!("↓");
             }
+            Key::Char('w') => {
+                tilt = tilt.saturating_add(1);
+                rover.look_at(pan, tilt);
+            }
+            Key::Char('s') => {
+                tilt = tilt.saturating_sub(1);
+                rover.look_at(pan, tilt);
+            }
+            Key::Char('a') => {
+                pan = pan.saturating_add(1);
+                rover.look_at(pan, tilt);
+            }
+            Key::Char('d') => {
+                pan = pan.saturating_sub(1);
+                rover.look_at(pan, tilt);
+            }
             Key::Char(' ') => {
                 rover.stop();
                 println!("_");
@@ -85,6 +111,15 @@ fn drive(stdin: Stdin, mut stdout: RawTerminal<Stdout>, rover: &mut dyn Rover) -
             termion::cursor::Goto(1, 2),
             termion::clear::CurrentLine,
             speed
+        ).unwrap();
+
+        write!(
+            stdout,
+            "{}{}Looking at: [{}; {}]",
+            termion::cursor::Goto(1, 3),
+            termion::clear::CurrentLine,
+            pan,
+            tilt
         ).unwrap();
 
         stdout.flush().unwrap();
