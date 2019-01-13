@@ -3,10 +3,21 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::fs::OpenOptions;
 use std::io::Write;
+use std::thread;
+use std::time::{Duration, SystemTime};
 
 use rppal::gpio::{Gpio, Mode, Level, Error as RppalError};
 use util::SoftPwm;
 use rover::api;
+
+// sensor input pins in BCM numbering
+const GPIO_IR_L: u8 = 4;
+const GPIO_IR_R: u8 = 17;
+const GPIO_LINE_L: u8 = 5;
+const GPIO_LINE_R: u8 = 27;
+
+const GPIO_SONAR: u8 = 20;
+const SOUND_SPEED: u32 = 343000; // in mm/s
 
 // motors control pins in BCM numbering
 const GPIO_MOTOR_L1: u8 = 16;
@@ -63,6 +74,7 @@ impl Display for RobohatError {
 }
 
 pub struct RobohatRover {
+    gpio: Arc<Mutex<Gpio>>,
     left_motor: (SoftPwm, SoftPwm),
     right_motor: (SoftPwm, SoftPwm),
 }
@@ -77,6 +89,16 @@ impl RobohatRover {
             )
         );
 
+        {
+            let mut g = gpio.lock().unwrap();
+
+            g.set_mode(GPIO_IR_L, Mode::Input);
+            g.set_mode(GPIO_IR_R, Mode::Input);
+
+            g.set_mode(GPIO_LINE_L, Mode::Input);
+            g.set_mode(GPIO_LINE_R, Mode::Input);
+        }
+
         let lm = (
             SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_L1, 10.0, 0.0),
             SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_L2, 10.0, 0.0)
@@ -89,6 +111,7 @@ impl RobohatRover {
 
         Ok(
             RobohatRover {
+                gpio: gpio,
                 left_motor: lm,
                 right_motor: rm,
             }
@@ -195,7 +218,7 @@ impl api::Looker for RobohatRover {
     fn look_at(&mut self, h: i16, v: i16) {
         let (hpw, vpw) = RobohatRover::map_degrees_to_pulse_width(h, v);
 
-        println!("Converted coordinates: [{}; {}]", hpw, vpw);
+//        println!("Converted coordinates: [{}; {}]", hpw, vpw);
 
         let mut servo_ctl = OpenOptions::new()
             .write(true)
@@ -204,5 +227,58 @@ impl api::Looker for RobohatRover {
 
         servo_ctl.write(format!("7={}\n", hpw).as_bytes()).unwrap();
         servo_ctl.write(format!("6={}\n", vpw).as_bytes()).unwrap();
+    }
+}
+
+impl api::Feeler for RobohatRover {
+    fn obstacles(&self) -> Vec<bool> {
+        let gpio = self.gpio.lock().unwrap();
+
+        vec![
+            gpio.read(GPIO_IR_L).unwrap() == Level::Low,
+            gpio.read(GPIO_IR_R).unwrap() == Level::Low
+        ]
+    }
+
+    fn lines(&self) -> Vec<bool> {
+        let gpio = self.gpio.lock().unwrap();
+
+        vec![
+            gpio.read(GPIO_LINE_L).unwrap() == Level::Low,
+            gpio.read(GPIO_LINE_R).unwrap() == Level::Low
+        ]
+    }
+
+    fn get_distance(&mut self) -> f32 {
+        let mut gpio = self.gpio.lock().unwrap();
+
+        gpio.set_mode(GPIO_SONAR, Mode::Output);
+        gpio.write(GPIO_SONAR, Level::High);
+        thread::sleep(Duration::from_micros(10));
+        gpio.write(GPIO_SONAR, Level::Low);
+
+        gpio.set_mode(GPIO_SONAR, Mode::Input);
+
+        let timeout = Duration::from_millis(100);
+        let mut timeout_guard = SystemTime::now();
+        let mut pulse_start = timeout_guard.clone();
+        while gpio.read(GPIO_SONAR).unwrap() == Level::Low && timeout_guard.elapsed().unwrap() < timeout {
+            pulse_start = SystemTime::now();
+        }
+
+        timeout_guard = SystemTime::now();
+        let mut pulse_end = timeout_guard.clone();
+        while gpio.read(GPIO_SONAR).unwrap() == Level::High && timeout_guard.elapsed().unwrap() < timeout {
+            pulse_end = SystemTime::now();
+        }
+
+        let pulse_width = pulse_end.duration_since(pulse_start).unwrap();
+
+        let pulse_width_f32 =
+            pulse_width.as_secs() as f32 + pulse_width.subsec_nanos() as f32 / 1000000000.0;
+
+        let distance = SOUND_SPEED as f32 * pulse_width_f32;
+
+        distance / 2.0
     }
 }
