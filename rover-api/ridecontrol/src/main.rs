@@ -73,7 +73,7 @@ fn drive<T: Mover + Looker + Feeler>(stdin: AsyncReader, mut stdout: RawTerminal
         write!(
             stdout,
             "{}Distance to obstacle: {:.3} m",
-            termion::cursor::Goto(sx / 2 - 10, sy / 2 + 2),
+            termion::cursor::Goto(sx / 2 - 14, sy / 2 + 2),
             distance / 1000.0
         );
     }
