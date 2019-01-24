@@ -92,11 +92,11 @@ impl SoftPwmWorker {
     }
 
     fn update_times(&mut self) {
-        let period = 1.0 / self.frequency;
-        let time_on_ns = period * self.duty_cycle;
-        let time_off_ns = period - time_on_ns;
-        self.time_on_ns = (time_on_ns * 1000000000.0) as u64;
-        self.time_off_ns = (time_off_ns * 1000000000.0) as u64;
+        let period_sec = 1.0 / self.frequency;
+        let time_on_sec = period_sec * self.duty_cycle;
+        let time_off_sec = period_sec - time_on_sec;
+        self.time_on_ns = (time_on_sec * 1000000000.0) as u64;
+        self.time_off_ns = (time_off_sec * 1000000000.0) as u64;
     }
 
     fn check_updates(&mut self) -> Option<(u64, u64)> {
