@@ -126,13 +126,13 @@ impl RobohatRover {
             motor.0.set_duty_cycle(0.0).map_err(|e| { RobohatError::Gpio })?;
             motor.1.set_duty_cycle(0.0).map_err(|e| { RobohatError::Gpio })?;
         } else if forward {
-            motor.0.set_duty_cycle(speed as f32 / 100.0).map_err(|e| { RobohatError::Gpio })?;
-            motor.0.set_frequency(speed as f32).map_err(|e| { RobohatError::Gpio })?;
+            motor.0.set_duty_cycle(duty_cycle).map_err(|e| { RobohatError::Gpio })?;
+            motor.0.set_frequency(frequency).map_err(|e| { RobohatError::Gpio })?;
             motor.1.set_duty_cycle(0.0).map_err(|e| { RobohatError::Gpio })?;
         } else {
             motor.0.set_duty_cycle(0.0).map_err(|e| { RobohatError::Gpio })?;
-            motor.1.set_duty_cycle(speed as f32 / 100.0).map_err(|e| { RobohatError::Gpio })?;
-            motor.1.set_frequency(speed as f32).map_err(|e| { RobohatError::Gpio })?;
+            motor.1.set_duty_cycle(duty_cycle).map_err(|e| { RobohatError::Gpio })?;
+            motor.1.set_frequency(frequency).map_err(|e| { RobohatError::Gpio })?;
         }
 
         Ok(())
