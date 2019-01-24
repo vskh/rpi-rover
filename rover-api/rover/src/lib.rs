@@ -12,8 +12,8 @@ pub mod api {
     }
 
     pub trait Feeler {
-        fn obstacles(&self) -> Vec<bool>;
-        fn lines(&self) -> Vec<bool>;
+        fn get_obstacles(&self) -> Vec<bool>;
+        fn get_lines(&self) -> Vec<bool>;
         fn get_distance(&mut self) -> f32;
     }
 }

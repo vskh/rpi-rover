@@ -153,8 +153,8 @@ fn drive<T: Mover + Looker + Feeler>(stdin: AsyncReader, mut stdout: RawTerminal
                 rover.look_at(pan, tilt);
             }
             _ => {
-                let obstacles = rover.obstacles();
-                let lines = rover.lines();
+                let obstacles = rover.get_obstacles();
+                let lines = rover.get_lines();
                 print_sensors(
                     &mut stdout,
                     obstacles[0], obstacles[1],

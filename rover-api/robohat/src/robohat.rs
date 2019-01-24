@@ -231,7 +231,7 @@ impl api::Looker for RobohatRover {
 }
 
 impl api::Feeler for RobohatRover {
-    fn obstacles(&self) -> Vec<bool> {
+    fn get_obstacles(&self) -> Vec<bool> {
         let gpio = self.gpio.lock().unwrap();
 
         vec![
@@ -240,7 +240,7 @@ impl api::Feeler for RobohatRover {
         ]
     }
 
-    fn lines(&self) -> Vec<bool> {
+    fn get_lines(&self) -> Vec<bool> {
         let gpio = self.gpio.lock().unwrap();
 
         vec![
