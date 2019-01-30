@@ -1,9 +1,9 @@
+use rppal::gpio::{Gpio, Level, Mode};
+use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::thread::JoinHandle;
-use std::sync::mpsc;
 use std::time::Duration;
-use rppal::gpio::{Gpio, Mode, Level};
 
 enum PwmUpdate {
     Stop,
@@ -13,7 +13,7 @@ enum PwmUpdate {
 
 #[derive(Debug)]
 pub enum SoftPwmError {
-    UpdateError
+    UpdateError,
 }
 
 pub type Result<T> = std::result::Result<T, SoftPwmError>;
@@ -35,32 +35,24 @@ impl SoftPwm {
 
         SoftPwm {
             channel: tx,
-            worker: Some(
-                thread::spawn(move || {
-                    let mut worker = SoftPwmWorker::new(
-                        gpio,
-                        pin,
-                        frequency,
-                        duty_cycle,
-                        rx,
-                    );
+            worker: Some(thread::spawn(move || {
+                let mut worker = SoftPwmWorker::new(gpio, pin, frequency, duty_cycle, rx);
 
-                    worker.run();
-                })
-            ),
+                worker.run();
+            })),
         }
     }
 
     pub fn set_frequency(&mut self, new_frequency: f32) -> Result<()> {
         self.channel
             .send(PwmUpdate::Frequency(new_frequency))
-            .map_err(|_| { SoftPwmError::UpdateError })
+            .map_err(|_| SoftPwmError::UpdateError)
     }
 
     pub fn set_duty_cycle(&mut self, new_duty_cycle: f32) -> Result<()> {
         self.channel
             .send(PwmUpdate::DutyCycle(new_duty_cycle))
-            .map_err(|_| { SoftPwmError::UpdateError })
+            .map_err(|_| SoftPwmError::UpdateError)
     }
 }
 
@@ -71,15 +63,17 @@ struct SoftPwmWorker {
     duty_cycle: f32,
     channel: mpsc::Receiver<PwmUpdate>,
     time_on_ns: u64,
-    time_off_ns: u64
+    time_off_ns: u64,
 }
 
 impl SoftPwmWorker {
-    fn new(gpio: Arc<Mutex<Gpio>>,
-           pin: u8,
-           init_frequency: f32,
-           init_duty_cycle: f32,
-           channel: mpsc::Receiver<PwmUpdate>) -> SoftPwmWorker {
+    fn new(
+        gpio: Arc<Mutex<Gpio>>,
+        pin: u8,
+        init_frequency: f32,
+        init_duty_cycle: f32,
+        channel: mpsc::Receiver<PwmUpdate>,
+    ) -> SoftPwmWorker {
         SoftPwmWorker {
             gpio: gpio,
             pin: pin,
@@ -87,7 +81,7 @@ impl SoftPwmWorker {
             duty_cycle: init_duty_cycle,
             channel: channel,
             time_on_ns: 0,
-            time_off_ns: 0
+            time_off_ns: 0,
         }
     }
 
@@ -107,7 +101,7 @@ impl SoftPwmWorker {
                 PwmUpdate::Frequency(nf) => {
                     self.frequency = nf;
                     updated = true;
-                },
+                }
                 PwmUpdate::DutyCycle(ndc) => {
                     self.duty_cycle = ndc;
                     updated = true;
@@ -125,7 +119,7 @@ impl SoftPwmWorker {
     fn run(&mut self) {
         loop {
             if let Some((time_on, _)) = self.check_updates() {
-//                println!("Pin {} HIGH for {} ns.", self.pin, time_on);
+                //                println!("Pin {} HIGH for {} ns.", self.pin, time_on);
                 if time_on > 0 {
                     let gpio = self.gpio.lock().unwrap();
                     gpio.write(self.pin, Level::High);
@@ -137,7 +131,7 @@ impl SoftPwmWorker {
             }
 
             if let Some((_, time_off)) = self.check_updates() {
-//                println!("Pin {} LOW for {} ns.", self.pin, time_off);
+                //                println!("Pin {} LOW for {} ns.", self.pin, time_off);
                 if time_off > 0 {
                     let gpio = self.gpio.lock().unwrap();
                     gpio.write(self.pin, Level::Low);
@@ -154,8 +148,12 @@ impl SoftPwmWorker {
 impl Drop for SoftPwm {
     fn drop(&mut self) {
         if let Some(handle) = self.worker.take() {
-            self.channel.send(PwmUpdate::Stop).expect("Failed to notify SoftPwm worker thread.");
-            handle.join().expect("Failed to cleanup SoftPwm worker thread.");
+            self.channel
+                .send(PwmUpdate::Stop)
+                .expect("Failed to notify SoftPwm worker thread.");
+            handle
+                .join()
+                .expect("Failed to cleanup SoftPwm worker thread.");
         }
     }
 }

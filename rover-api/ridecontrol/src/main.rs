@@ -1,34 +1,40 @@
-extern crate termion;
-extern crate rover;
 extern crate robohat;
+extern crate rover;
+extern crate termion;
 
+use std::io::{stdout, Stdout, Write};
 use std::thread;
 use std::time::Duration;
-use std::io::{Write, stdout, Stdout};
-use termion::{async_stdin, AsyncReader};
 use termion::event::Key;
-use termion::raw::{IntoRawMode, RawTerminal};
 use termion::input::TermRead;
+use termion::raw::{IntoRawMode, RawTerminal};
+use termion::{async_stdin, AsyncReader};
 
-use rover::api::{Mover, Looker, Feeler};
 use robohat::RobohatRover;
+use rover::api::{Feeler, Looker, Mover};
 
 fn init_screen() -> (AsyncReader, RawTerminal<Stdout>) {
     let stdin = async_stdin();
     let mut stdout = stdout().into_raw_mode().unwrap();
 
-    write!(stdout,
-           "{}{}Press 'Esc' to exit.{}",
-           termion::clear::All,
-           termion::cursor::Goto(1, 1),
-           termion::cursor::Hide
-    ).unwrap();
+    write!(
+        stdout,
+        "{}{}Press 'Esc' to exit.{}",
+        termion::clear::All,
+        termion::cursor::Goto(1, 1),
+        termion::cursor::Hide
+    )
+    .unwrap();
     stdout.flush().unwrap();
 
     (stdin, stdout)
 }
 
-fn drive<T: Mover + Looker + Feeler>(stdin: AsyncReader, mut stdout: RawTerminal<Stdout>, rover: &mut T) -> RawTerminal<Stdout> {
+fn drive<T: Mover + Looker + Feeler>(
+    stdin: AsyncReader,
+    mut stdout: RawTerminal<Stdout>,
+    rover: &mut T,
+) -> RawTerminal<Stdout> {
     fn print_run_params(stdout: &mut RawTerminal<Stdout>, speed: u8, pan: i16, tilt: i16) {
         write!(
             stdout,
@@ -36,7 +42,8 @@ fn drive<T: Mover + Looker + Feeler>(stdin: AsyncReader, mut stdout: RawTerminal
             termion::cursor::Goto(1, 2),
             termion::clear::CurrentLine,
             speed
-        ).unwrap();
+        )
+        .unwrap();
         write!(
             stdout,
             "{}{}Looking at: [{}; {}]",
@@ -44,30 +51,34 @@ fn drive<T: Mover + Looker + Feeler>(stdin: AsyncReader, mut stdout: RawTerminal
             termion::clear::CurrentLine,
             pan,
             tilt
-        ).unwrap();
+        )
+        .unwrap();
     }
 
     fn print_sensors(
         stdout: &mut RawTerminal<Stdout>,
-        left_obstacle: bool, right_obstacle: bool,
-        left_line: bool, right_line: bool,
+        left_obstacle: bool,
+        right_obstacle: bool,
+        left_line: bool,
+        right_line: bool,
         distance: f32,
-    )
-    {
+    ) {
         let (sx, sy) = termion::terminal_size().unwrap();
 
         write!(
             stdout,
             "{}Left obstacle: {}   Right obstacle: {}",
             termion::cursor::Goto(sx / 2 - 17, sy / 2),
-            if left_obstacle { 1 } else { 0 }, if right_obstacle { 1 } else { 0 }
+            if left_obstacle { 1 } else { 0 },
+            if right_obstacle { 1 } else { 0 }
         );
 
         write!(
             stdout,
             "{}Left line: {}   Right line: {}",
             termion::cursor::Goto(sx / 2 - 13, sy / 2 + 1),
-            if left_line { 1 } else { 0 }, if right_line { 1 } else { 0 }
+            if left_line { 1 } else { 0 },
+            if right_line { 1 } else { 0 }
         );
 
         write!(
@@ -78,18 +89,10 @@ fn drive<T: Mover + Looker + Feeler>(stdin: AsyncReader, mut stdout: RawTerminal
         );
     }
 
-    fn print_direction(
-        stdout: &mut RawTerminal<Stdout>,
-        dir: char,
-    )
-    {
+    fn print_direction(stdout: &mut RawTerminal<Stdout>, dir: char) {
         let (sx, sy) = termion::terminal_size().unwrap();
 
-        write!(
-            stdout,
-            "{}",
-            termion::cursor::Goto(sx / 2, sy / 2 - 1),
-        ).unwrap();
+        write!(stdout, "{}", termion::cursor::Goto(sx / 2, sy / 2 - 1),).unwrap();
         print!("{}", dir);
     }
 
@@ -101,7 +104,6 @@ fn drive<T: Mover + Looker + Feeler>(stdin: AsyncReader, mut stdout: RawTerminal
 
     print_direction(&mut stdout, '_');
     print_run_params(&mut stdout, speed, pan, tilt);
-
 
     stdout.flush().unwrap();
 
@@ -157,9 +159,11 @@ fn drive<T: Mover + Looker + Feeler>(stdin: AsyncReader, mut stdout: RawTerminal
                 let lines = rover.get_lines();
                 print_sensors(
                     &mut stdout,
-                    obstacles[0], obstacles[1],
-                    lines[0], lines[1],
-                    rover.get_distance()
+                    obstacles[0],
+                    obstacles[1],
+                    lines[0],
+                    lines[1],
+                    rover.get_distance(),
                 );
                 thread::sleep(Duration::from_millis(100));
             }
@@ -169,7 +173,6 @@ fn drive<T: Mover + Looker + Feeler>(stdin: AsyncReader, mut stdout: RawTerminal
 
         stdout.flush().unwrap();
     }
-
 
     rover.stop();
 

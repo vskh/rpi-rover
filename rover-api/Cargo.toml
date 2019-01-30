@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "api-server",
     "ridecontrol",
     "rover",
     "robohat",
