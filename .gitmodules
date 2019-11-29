@@ -1,0 +1,3 @@
+[submodule "3rdparty/PiBits"]
+	path = 3rdparty/PiBits
+	url = https://github.com/richardghirst/PiBits.git
