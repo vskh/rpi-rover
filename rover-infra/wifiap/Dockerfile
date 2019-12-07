@@ -19,7 +19,6 @@ ENV AP_NETMASK ${ap_netmask}
 RUN apk add hostapd
 RUN apk add dnsmasq
 
-RUN mkdir /wifiap
 COPY . /wifiap
 WORKDIR /wifiap
 

@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  wifiap:
+    image: docker.ie.khondar.name/rover/wifiap:latest
+    restart: always
+    network_mode: host
+    privileged: true
+
+#  servoblaster:
+#    image: docker.ie.khondar.name/servoblaster:latest
+#    restart: always
+#    privileged: true
+
+  rproxy:
+    image: docker.ie.khondar.name/rover/rproxy:latest
+    ports:
+      - 8080:80
+    restart: always
+
+# end
