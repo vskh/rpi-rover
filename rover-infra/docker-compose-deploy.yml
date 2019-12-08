@@ -2,7 +2,7 @@ version: '3'
 
 services:
   wifiap:
-    image: docker.ie.khondar.name/rover/wifiap:latest
+    image: docker.ie.khondar.name/rover/wifiap:${TAG}
     restart: always
     network_mode: host
     privileged: true
@@ -13,7 +13,7 @@ services:
 #    privileged: true
 
   rproxy:
-    image: docker.ie.khondar.name/rover/rproxy:latest
+    image: docker.ie.khondar.name/rover/rproxy:${TAG}
     ports:
       - 8080:80
     restart: always
