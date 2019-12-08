@@ -1,2 +1,2 @@
-dhcpd.conf
 hostapd.conf
+dnsmasq.conf
