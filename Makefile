@@ -26,14 +26,14 @@
 # 	make deploy REPOPREFIX=mydocker.home/myproject/ BUILDID=testbuild1
 #
 
-BUILDID			?= latest
+BUILDID				?= latest
 
-SUBPROJECTS 	= rover-api rover-infra
-BUILD_TARGETS 	= $(SUBPROJECTS:%=build-%)
-PUBLISH_TARGETS = publish-rover-infra
-DEPLOY_TARGETS	= deploy-rover-infra
-UNDEPLOY_TARGETS= undeploy-rover-infra
-CLEAN_TARGETS 	= $(SUBPROJECTS:%=clean-%)
+SUBPROJECTS 		= rover-api rover-infra
+BUILD_TARGETS 		= $(SUBPROJECTS:%=build-%)
+PUBLISH_TARGETS 	= publish-rover-infra
+DEPLOY_TARGETS		= deploy-rover-infra
+UNDEPLOY_TARGETS	= undeploy-rover-infra
+CLEAN_TARGETS 		= $(SUBPROJECTS:%=clean-%)
 
 build: $(BUILD_TARGETS)
 
