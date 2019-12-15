@@ -32,7 +32,7 @@ BUILDID				?= latest
 IMAGEPLATFORM		?= linux/arm/v6
 TARGETPLATFORM 		?= arm-unknown-linux-gnueabihf
 
-SUBPROJECTS 		= rover-api rover-infra
+SUBPROJECTS 		= rover-driver rover-infra
 BUILD_TARGETS 		= $(SUBPROJECTS:%=build-%)
 PUBLISH_TARGETS 	= publish-rover-infra
 DEPLOY_TARGETS		= deploy-rover-infra

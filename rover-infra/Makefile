@@ -42,7 +42,7 @@ servoblaster/src:
 prebuild-servoblaster: servoblaster/src
 
 rover-api/target:
-	cp -r ../rover-api/target rover-api/target
+	cp -r ../rover-driver/target rover-api/target
 
 prebuild-rover-api: rover-api/target
 
@@ -63,7 +63,7 @@ clean-servoblaster-extra:
 	rm -rf servoblaster/src
 
 clean-rover-api-extra:
-	rm -rf rover-api/src
+	rm -rf rover-api/target
 
 $(CLEAN_TARGETS): $(CLEAN_EXTRA_TARGETS) post-build
 	docker images --filter="reference=$(@:clean-%=%):*" --format="{{.ID}}" | sort -u | xargs -r docker rmi --force
