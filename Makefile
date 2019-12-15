@@ -3,8 +3,10 @@
 # Configuration:
 # - REPOPREFIX: 	Docker REPOPREFIX prefix for project infra containers publishing.
 # - BUILDID: 		Arbitrary build identifier, user for images tagging. Default: latest.
-# - BUILDPLATFORM: 	Platform to target images to. Should match Raspberry Pi architecture.
+# - IMAGEPLATFORM: 	Platform to target images to. Should match Raspberry Pi architecture.
 #					Default: linux/arm/v6.
+# - TARGETPLATFORM: Platform to compile code for. Should match Raspberry Pi architecture.
+# 					Default: arm-unknown-linux-gnueabihf
 # - BUILDERNAME: 	Docker Buildkit builder name for this build.
 #
 # Supported targets:
@@ -27,6 +29,8 @@
 #
 
 BUILDID				?= latest
+IMAGEPLATFORM		?= linux/arm/v6
+TARGETPLATFORM 		?= arm-unknown-linux-gnueabihf
 
 SUBPROJECTS 		= rover-api rover-infra
 BUILD_TARGETS 		= $(SUBPROJECTS:%=build-%)

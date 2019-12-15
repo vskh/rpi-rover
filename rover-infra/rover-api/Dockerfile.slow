@@ -1,0 +1,22 @@
+# This builds within container of ARM arch using binfmt
+# It is considerably slow.
+
+FROM raspbian/stretch:latest AS builder
+
+COPY ./src /rover-api
+
+WORKDIR /rover-api
+
+RUN wget -qO - https://sh.rustup.rs | sh -s -- -y
+RUN apt update && apt -y upgrade
+RUN apt install -y build-essential
+RUN . $HOME/.cargo/env && \
+    cargo build --release
+
+FROM raspbian/stretch:latest
+
+COPY --from builder /rover-api/target/release/api-server /api-server
+
+ENTRYPOINT ["/api-server"]
+
+# end

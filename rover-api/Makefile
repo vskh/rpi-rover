@@ -1,11 +1,16 @@
 # Makefile for Rust components of RPI-Rover project.
 
-.PHONY: build clean
+TARGETPLATFORM 		?= arm-unknown-linux-gnueabihf
+BUILDPROFILE 		?= --release
+
+export PATH 		:= $(HOME)/.cargo/bin:$(PATH)
 
 build:
-	cargo build
+	cross build $(BUILDPROFILE) --target $(TARGETPLATFORM)
 
 clean:
-	cargo clean
+	cross clean
+
+.PHONY: build clean
 
 # end
