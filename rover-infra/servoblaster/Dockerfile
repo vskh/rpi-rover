@@ -5,7 +5,7 @@ COPY ./locations.patch /servoblaster
 
 WORKDIR /servoblaster
 
-RUN apt update && apt upgrade -y
+RUN apt update
 RUN apt install -y build-essential libraspberrypi-dev
 
 RUN patch < locations.patch

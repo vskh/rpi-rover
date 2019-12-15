@@ -65,7 +65,7 @@ clean-servoblaster-extra:
 clean-rover-api-extra:
 	rm -rf rover-api/src
 
-$(CLEAN_TARGETS): $(CLEAN_EXTRA_TARGETS)
+$(CLEAN_TARGETS): $(CLEAN_EXTRA_TARGETS) post-build
 	docker images --filter="reference=$(@:clean-%=%):*" --format="{{.ID}}" | sort -u | xargs -r docker rmi --force
 
 .PHONY: \
