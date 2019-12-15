@@ -41,9 +41,9 @@ CLEAN_TARGETS 		= $(SUBPROJECTS:%=clean-%)
 
 build: $(BUILD_TARGETS)
 
-publish: $(PUBLISH_TARGETS)
+publish: build $(PUBLISH_TARGETS)
 
-deploy: $(DEPLOY_TARGETS)
+deploy: publish $(DEPLOY_TARGETS)
 
 undeploy: $(UNDEPLOY_TARGETS)
 
