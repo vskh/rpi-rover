@@ -4,7 +4,7 @@ REPOPREFIX 			?=
 BUILDID				?= latest
 
 IMAGEPLATFORM		?= linux/arm/v6
-TARGETPLATFORM 		?= arm-unknown-linux-gnueabihf
+TARGETPLATFORM 		?= armv7-unknown-linux-gnueabihf
 BUILDERNAME			?= rpi-rover-builder-$(BUILDID)
 
 CONTAINERS 			= rproxy wifiap servoblaster rover-api
