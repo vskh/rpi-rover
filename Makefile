@@ -29,14 +29,14 @@
 #
 
 BUILDID				?= latest
-IMAGEPLATFORM		?= linux/arm/v6
-TARGETPLATFORM 		?= arm-unknown-linux-gnueabihf
+IMAGEPLATFORM		?= linux/arm/v7
+TARGETPLATFORM 		?= arm7-unknown-linux-gnueabihf
 
 SUBPROJECTS 		= rover-driver rover-infra
 BUILD_TARGETS 		= $(SUBPROJECTS:%=build-%)
-PUBLISH_TARGETS 	= publish-rover-infra
-DEPLOY_TARGETS		= deploy-rover-infra
-UNDEPLOY_TARGETS	= undeploy-rover-infra
+PUBLISH_TARGETS 	= $(SUBPROJECTS:%=publish-%)
+DEPLOY_TARGETS		= $(SUBPROJECTS:%=deloy-%)
+UNDEPLOY_TARGETS	= $(SUBPROJECTS:%=undeploy-%)
 CLEAN_TARGETS 		= $(SUBPROJECTS:%=clean-%)
 
 build: $(BUILD_TARGETS)

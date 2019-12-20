@@ -8,9 +8,15 @@ export PATH 		:= $(HOME)/.cargo/bin:$(PATH)
 build:
 	cross build $(BUILDPROFILE) --target $(TARGETPLATFORM)
 
+publish: build
+
+deploy: publish
+
+undeploy:
+
 clean:
 	cross clean
 
-.PHONY: build clean
+.PHONY: build publish deploy undeploy clean
 
 # end
