@@ -14,9 +14,9 @@ PUBLISH_TARGETS		= $(CONTAINERS:%=publish-%)
 CLEAN_TARGETS		= $(CONTAINERS:%=clean-%)
 CLEAN_EXTRA_TARGETS = clean-servoblaster-extra clean-rover-api-extra
 
-build: pre-build $(PREBUILD_TARGETS) $(BUILD_TARGETS) post-build
+build: $(BUILD_TARGETS) post-build
 
-publish: build pre-publish $(PUBLISH_TARGETS)
+publish: build $(PUBLISH_TARGETS)
 
 pre-publish:
 ifndef REPOPREFIX
@@ -56,7 +56,7 @@ $(BUILD_TARGETS): pre-build $(PREBUILD_TARGETS)
 post-build:
 	- docker buildx rm $(BUILDERNAME)
 
-$(PUBLISH_TARGETS):
+$(PUBLISH_TARGETS): pre-publish
 	docker push $(REPOPREFIX)$(@:publish-%=%):$(BUILDID)
 
 clean-servoblaster-extra:
