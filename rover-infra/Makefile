@@ -3,7 +3,7 @@
 REPOPREFIX 			?=
 BUILDID				?= latest
 
-IMAGEPLATFORM		?= linux/arm/v6
+IMAGEPLATFORM		?= linux/arm/v7
 TARGETPLATFORM 		?= armv7-unknown-linux-gnueabihf
 BUILDERNAME			?= rpi-rover-builder-$(BUILDID)
 
