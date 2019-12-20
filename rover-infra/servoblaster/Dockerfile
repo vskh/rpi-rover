@@ -8,7 +8,7 @@ WORKDIR /servoblaster
 RUN patch < locations.patch
 RUN make
 
-FROM vskhimages/docker-raspberry-pi-runner:latest
+FROM vskhimages/docker-raspberry-pi-runner:latest AS runner
 LABEL description="ServoBlaster service for servomotors control"
 
 COPY --from=builder /servoblaster/servod /
