@@ -1,9 +1,6 @@
-FROM raspbian/stretch:latest
+FROM vskhimages/docker-raspberry-pi-runner:latest
 
 ARG TARGETPLATFORM=arm-unknown-linux-gnueabihf
-
-RUN apt update
-RUN apt install -y libraspberrypi-bin
 
 COPY ./target/${TARGETPLATFORM}/release/api-server /
 
