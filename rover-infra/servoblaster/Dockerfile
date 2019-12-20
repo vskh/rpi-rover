@@ -13,6 +13,7 @@ LABEL description="ServoBlaster service for servomotors control"
 
 COPY --from=builder /servoblaster/servod /
 
-ENTRYPOINT ["/servod"]
+ENTRYPOINT ["/servod", "-f"]
+
 
 # end
