@@ -1,4 +1,4 @@
-extern crate rover;
+extern crate librover;
 extern crate rppal;
 extern crate util;
 

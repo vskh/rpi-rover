@@ -1,5 +1,5 @@
-extern crate robohat;
-extern crate rover;
+extern crate librobohat;
+extern crate librover;
 extern crate termion;
 
 use std::io::{stdout, Stdout, Write};
@@ -10,8 +10,8 @@ use termion::input::TermRead;
 use termion::raw::{IntoRawMode, RawTerminal};
 use termion::{async_stdin, AsyncReader};
 
-use robohat::RobohatRover;
-use rover::api::{Feeler, Looker, Mover};
+use librobohat::RobohatRover;
+use librover::api::{Feeler, Looker, Mover};
 
 fn init_screen() -> (AsyncReader, RawTerminal<Stdout>) {
     let stdin = async_stdin();

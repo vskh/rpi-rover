@@ -1,8 +1,9 @@
 [workspace]
 members = [
     "api-server",
+    "driver",
+    "librobohat",
+    "librover",
     "ridecontrol",
-    "rover",
-    "robohat",
     "util"
 ]

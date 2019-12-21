@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
-use rover::api;
+use librover::api;
 use rppal::gpio::{Error as RppalError, Gpio, Level, Mode};
 use util::SoftPwm;
 
