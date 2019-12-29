@@ -11,7 +11,7 @@ pub mod api {
         fn look_at(&mut self, h: i16, v: i16);
     }
 
-    pub trait Feeler {
+    pub trait Sensor {
         fn get_obstacles(&self) -> Vec<bool>;
         fn get_lines(&self) -> Vec<bool>;
         fn get_distance(&mut self) -> f32;

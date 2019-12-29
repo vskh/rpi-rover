@@ -2,8 +2,9 @@
 name = "librobohat"
 version = "0.1.0"
 authors = ["Vadym S. Khondar <vadym@khondar.name>"]
+edition = "2018"
 
 [dependencies]
 rppal = "0.9.0"
 librover = { path = "../librover" }
-util = { path = "../util" }
+libutil = { path = "../libutil" }

@@ -2,8 +2,9 @@
 members = [
     "api-server",
     "driver",
+    "libdriver",
     "librobohat",
     "librover",
     "ridecontrol",
-    "util"
+    "libutil"
 ]

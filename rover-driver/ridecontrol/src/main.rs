@@ -1,7 +1,3 @@
-extern crate librobohat;
-extern crate librover;
-extern crate termion;
-
 use std::io::{stdout, Stdout, Write};
 use std::thread;
 use std::time::Duration;
@@ -11,7 +7,7 @@ use termion::raw::{IntoRawMode, RawTerminal};
 use termion::{async_stdin, AsyncReader};
 
 use librobohat::RobohatRover;
-use librover::api::{Feeler, Looker, Mover};
+use librover::api::{Sensor, Looker, Mover};
 
 fn init_screen() -> (AsyncReader, RawTerminal<Stdout>) {
     let stdin = async_stdin();
@@ -30,7 +26,7 @@ fn init_screen() -> (AsyncReader, RawTerminal<Stdout>) {
     (stdin, stdout)
 }
 
-fn drive<T: Mover + Looker + Feeler>(
+fn drive<T: Mover + Looker + Sensor>(
     stdin: AsyncReader,
     mut stdout: RawTerminal<Stdout>,
     rover: &mut T,

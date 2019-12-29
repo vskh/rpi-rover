@@ -6,9 +6,9 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
-use librover::api;
 use rppal::gpio::{Error as RppalError, Gpio, Level, Mode};
-use util::SoftPwm;
+use librover::api;
+use libutil::SoftPwm;
 
 // sensor input pins in BCM numbering
 const GPIO_IR_L: u8 = 4;
@@ -251,7 +251,7 @@ impl api::Looker for RobohatRover {
     }
 }
 
-impl api::Feeler for RobohatRover {
+impl api::Sensor for RobohatRover {
     fn get_obstacles(&self) -> Vec<bool> {
         let gpio = self.gpio.lock().unwrap();
 
