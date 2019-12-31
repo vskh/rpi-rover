@@ -8,8 +8,10 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "0.2.6", features = ["tcp", "dns", "macros"] }
+tokio = { version = "0.2.6", features = ["dns", "macros", "rt-core", "tcp"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_cbor = "0.10.2"
 config = "0.9"
+log = "0.4"
+log4rs = "0.9.0"
 libdriver = { path = "../libdriver" }

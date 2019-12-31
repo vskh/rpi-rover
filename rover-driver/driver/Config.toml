@@ -1,1 +1,2 @@
 listen = "0.0.0.0:5757"
+log_config = "log4rs.yml"
