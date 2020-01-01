@@ -1,8 +1,8 @@
 mod logger;
+mod protocol;
 
 use log::{trace, debug, info, warn, error};
 use tokio::net::TcpListener;
-use tokio::prelude::*;
 
 const CONFIG_FILE: &str = "./Config";
 
@@ -16,17 +16,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // initialize logging
     logger::init_log(settings.get_str("log_config").ok())?;
 
+    let listen_addr = settings.get_str("listen")?;
+
+    info!("Starting driver on {}...", listen_addr);
+
     // bind socket
-    let mut listener = TcpListener::bind(settings.get_str("listen")?).await?;
+    let listener = TcpListener::bind(listen_addr).await?;
 
-    // start accepting connections
-    loop {
-        let (mut socket, client_addr) = listener.accept().await?;
-
-        tokio::spawn(async move {
-            debug!("Received connection from {}.", client_addr);
-        });
-    }
-
-    Ok(())
+    // start dispatch loop
+    protocol::dispatch(listener).await
 }
