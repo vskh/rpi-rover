@@ -1,13 +1,14 @@
 mod logger;
-mod protocol;
 
-use log::{trace, debug, info, warn, error};
-use tokio::net::TcpListener;
+use log::info;
+use libdriver::server::Server;
 
 const CONFIG_FILE: &str = "./Config";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Rover driver is starting up.");
+
     // load settings
     let mut settings = config::Config::default();
     settings
@@ -20,9 +21,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Starting driver on {}...", listen_addr);
 
-    // bind socket
-    let listener = TcpListener::bind(listen_addr).await?;
+    // create server
+    let mut server = Server::new(&listen_addr)
+        .await?;
 
-    // start dispatch loop
-    protocol::dispatch(listener).await
+    // start run loop
+    server.serve()
+        .await?;
+
+    info!("Rover driver finished.");
+
+    Ok(())
 }

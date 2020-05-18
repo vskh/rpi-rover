@@ -1,7 +1,8 @@
+use std::io;
+
 pub mod data {
     use serde::{Serialize, Deserialize};
-    use serde::export::Formatter;
-    use serde::export::fmt::Error;
+
 
     #[derive(Debug, Serialize, Deserialize)]
     pub enum ProtocolMessage {
@@ -23,8 +24,8 @@ pub mod data {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct MoveRequest {
-        move_type: MoveType,
-        speed: u8
+        pub move_type: MoveType,
+        pub speed: u8
     }
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -55,29 +56,25 @@ pub mod data {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub enum StatusResponse {
-        Ok,
+        Success,
         Error(String)
     }
 }
 
 pub trait Mover {
-    fn stop(&mut self) -> data::StatusResponse;
-    fn move_forward(&mut self, speed: u8) -> data::StatusResponse;
-    fn move_backward(&mut self, speed: u8) -> data::StatusResponse;
-    fn spin_right(&mut self, speed: u8) -> data::StatusResponse;
-    fn spin_left(&mut self, speed: u8) -> data::StatusResponse;
+    fn stop(&mut self) -> io::Result<data::StatusResponse>;
+    fn move_forward(&mut self, speed: u8) -> io::Result<data::StatusResponse>;
+    fn move_backward(&mut self, speed: u8) -> io::Result<data::StatusResponse>;
+    fn spin_right(&mut self, speed: u8) -> io::Result<data::StatusResponse>;
+    fn spin_left(&mut self, speed: u8) -> io::Result<data::StatusResponse>;
 }
 
 pub trait Looker {
-    fn look_at(&mut self, h: i16, v: i16) -> data::StatusResponse;
+    fn look_at(&mut self, h: i16, v: i16) -> io::Result<data::StatusResponse>;
 }
 
 pub trait Sensor {
-    fn get_obstacles(&self) -> data::SenseResponse;
-    fn get_lines(&self) -> data::SenseResponse;
-    fn get_distance(&mut self) -> data::SenseResponse;
-}
-
-pub trait Driver : Mover + Looker + Sensor {
-
+    fn get_obstacles(&self) -> io::Result<data::SenseResponse>;
+    fn get_lines(&self) -> io::Result<data::SenseResponse>;
+    fn get_distance(&mut self) -> io::Result<data::SenseResponse>;
 }
