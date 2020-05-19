@@ -4,6 +4,7 @@ pub mod server;
 
 #[derive(Debug)]
 pub enum Error {
+    Driver(String),
     Io(std::io::Error),
     Serialization(Box<dyn std::error::Error>),
     Unknown(Box<dyn std::error::Error>),
@@ -12,6 +13,7 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Error::Driver(description) => write!(f, "{}", description),
             Error::Io(e) => write!(f, "IO Error: {}", e),
             Error::Serialization(e) => write!(f, "Serialization error: {}", e),
             Error::Unknown(e) => write!(f, "Unknown error: {}", e)
@@ -38,6 +40,7 @@ impl From<std::io::Error> for Error {
 impl std::error::Error for Error {
     fn cause(&self) -> Option<&dyn std::error::Error> {
         match self {
+            Error::Driver(_) => None,
             Error::Io(e) => Some(e),
             Error::Serialization(e) => Some(&**e),
             Error::Unknown(e) => Some(&**e)

@@ -1,4 +1,5 @@
-use std::io;
+use async_trait::async_trait;
+use crate::Result;
 
 pub mod data {
     use serde::{Serialize, Deserialize};
@@ -24,14 +25,14 @@ pub mod data {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct MoveRequest {
-        pub move_type: MoveType,
-        pub speed: u8
+        pub(crate) move_type: MoveType,
+        pub(crate) speed: u8
     }
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct LookRequest {
-        x: i16,
-        y: i16
+        pub(crate) x: i16,
+        pub(crate) y: i16
     }
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -61,20 +62,23 @@ pub mod data {
     }
 }
 
+#[async_trait]
 pub trait Mover {
-    fn stop(&mut self) -> io::Result<data::StatusResponse>;
-    fn move_forward(&mut self, speed: u8) -> io::Result<data::StatusResponse>;
-    fn move_backward(&mut self, speed: u8) -> io::Result<data::StatusResponse>;
-    fn spin_right(&mut self, speed: u8) -> io::Result<data::StatusResponse>;
-    fn spin_left(&mut self, speed: u8) -> io::Result<data::StatusResponse>;
+    async fn stop(&mut self) -> Result<()>;
+    async fn move_forward(&mut self, speed: u8) -> Result<()>;
+    async fn move_backward(&mut self, speed: u8) -> Result<()>;
+    async fn spin_right(&mut self, speed: u8) -> Result<()>;
+    async fn spin_left(&mut self, speed: u8) -> Result<()>;
 }
 
+#[async_trait]
 pub trait Looker {
-    fn look_at(&mut self, h: i16, v: i16) -> io::Result<data::StatusResponse>;
+    async fn look_at(&mut self, h: i16, v: i16) -> Result<()>;
 }
 
+#[async_trait]
 pub trait Sensor {
-    fn get_obstacles(&self) -> io::Result<data::SenseResponse>;
-    fn get_lines(&self) -> io::Result<data::SenseResponse>;
-    fn get_distance(&mut self) -> io::Result<data::SenseResponse>;
+    async fn get_obstacles(&self) -> Result<()>;
+    async fn get_lines(&self) -> Result<()>;
+    async fn get_distance(&mut self) -> Result<()>;
 }

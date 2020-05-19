@@ -1,5 +1,5 @@
 use futures::{SinkExt, StreamExt};
-use log::{debug, error, info, trace};
+use log::{debug, error, warn, info, trace};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_serde_cbor::Codec;
 use tokio_util::codec::Decoder;
@@ -18,6 +18,8 @@ pub struct Server {
 
 impl Server {
     pub async fn new(listen_address: &str) -> Result<Server> {
+        info!("Launching driver server on {}.", listen_address);
+
         let listener = TcpListener::bind(listen_address)
             .await?;
 
@@ -73,12 +75,12 @@ impl Server {
 
         let mut channel = codec.framed(socket);
 
-        while let Some(message) = channel.next().await {
-            match message {
-                Ok(protocol_message) => {
-                    match &protocol_message {
+        while let Some(response) = channel.next().await {
+            match response {
+                Ok(message) => {
+                    match &message {
                         ProtocolMessage::MoveRequest(r) => {
-                            debug!("[{}] Processing move request: {:#?}", peer_address, r);
+                            trace!("[{}] Processing move request: {:#?}", peer_address, r);
 
                             if let Some(ref mut mover) = self.mover {
                                 match r.move_type {
@@ -87,27 +89,44 @@ impl Server {
                                     MoveType::SpinCW => mover.spin_right(r.speed),
                                     MoveType::SpinCCW => mover.spin_left(r.speed)
                                 }
-                            }
 
-                            channel
-                                .send(ProtocolMessage::StatusResponse(StatusResponse::Success))
-                                .await?
+                                channel
+                                    .send(ProtocolMessage::StatusResponse(StatusResponse::Success))
+                                    .await?
+                            } else {
+                                warn!("[{}] Requested operation is not implemented.", peer_address);
+
+                                channel
+                                    .send(ProtocolMessage::StatusResponse(StatusResponse::Error("Unsupported operation.".to_owned())))
+                                    .await?
+                            }
                         }
                         ProtocolMessage::LookRequest(r) => {
-                            debug!("[{}] Received look request: {:#?}", peer_address, r)
+                            trace!("[{}] Received look request: {:#?}", peer_address, r);
+
+                            if let Some(ref mut looker) = self.looker {
+                                looker.look_at(r.x, r.y)
+                            } else {
+                                warn!("[{}] Requested operation is not implemented.", peer_address);
+
+                                channel
+                                    .send(ProtocolMessage::StatusResponse(StatusResponse::Error("Unsupported operation.".to_owned())))
+                                    .await?
+                            }
                         }
                         ProtocolMessage::SenseRequest(r) => {
-                            debug!("[{}] Received sense request: {:#?}", peer_address, r)
+                            trace!("[{}] Received sense request: {:#?}", peer_address, r)
                         }
                         ProtocolMessage::SenseSubscribeRequest(r) => {
-                            debug!("[{}] Received sense subscribe request: {:#?}", peer_address, r)
+                            trace!("[{}] Received sense subscribe request: {:#?}", peer_address, r)
                         }
-                        _ => debug!("[{}] Received unsupported request: {:#?}", peer_address, protocol_message),
+                        _ => warn!("[{}] Received unsupported request type: {:#?}", peer_address, message),
                     }
-                    info!("[{}] Successfully processed message: {:#?}", peer_address, protocol_message);
+
+                    debug!("[{}] Successfully processed message: {:#?}", peer_address, message);
                 }
                 Err(e) => {
-                    error!("Failed to receive message while talking to {}.", peer_address);
+                    error!("[{}] Failed to receive message: {}", peer_address, e);
                     return Err(Error::from(e));
                 }
             }
