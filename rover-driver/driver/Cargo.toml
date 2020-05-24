@@ -17,3 +17,5 @@ tokio-util = { version = "0.2.0", features = ["codec"] }
 serde = { version = "1.0", features = ["derive"] }
 tokio-serde-cbor = { version = "0.4.0" }
 libdriver = { path = "../libdriver" }
+librobohat = { path = "../librobohat" }
+librover = { path = "../librover" }

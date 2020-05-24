@@ -12,11 +12,19 @@ enum PwmUpdate {
 }
 
 #[derive(Debug)]
-pub enum SoftPwmError {
+pub enum Error {
     UpdateError,
 }
 
-pub type Result<T> = std::result::Result<T, SoftPwmError>;
+pub type Result<T> = std::result::Result<T, Error>;
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "PWM worker update error")
+    }
+}
+
+impl std::error::Error for Error {}
 
 pub struct SoftPwm {
     channel: mpsc::Sender<PwmUpdate>,
@@ -46,13 +54,13 @@ impl SoftPwm {
     pub fn set_frequency(&mut self, new_frequency: f32) -> Result<()> {
         self.channel
             .send(PwmUpdate::Frequency(new_frequency))
-            .map_err(|_| SoftPwmError::UpdateError)
+            .map_err(|_| Error::UpdateError)
     }
 
     pub fn set_duty_cycle(&mut self, new_duty_cycle: f32) -> Result<()> {
         self.channel
             .send(PwmUpdate::DutyCycle(new_duty_cycle))
-            .map_err(|_| SoftPwmError::UpdateError)
+            .map_err(|_| Error::UpdateError)
     }
 }
 
@@ -75,11 +83,11 @@ impl SoftPwmWorker {
         channel: mpsc::Receiver<PwmUpdate>,
     ) -> SoftPwmWorker {
         SoftPwmWorker {
-            gpio: gpio,
-            pin: pin,
+            gpio,
+            pin,
             frequency: init_frequency,
             duty_cycle: init_duty_cycle,
-            channel: channel,
+            channel,
             time_on_ns: 0,
             time_off_ns: 0,
         }

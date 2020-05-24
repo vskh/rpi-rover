@@ -1,14 +1,16 @@
-use std::fmt;
-use std::fmt::{Display, Formatter};
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
-use rppal::gpio::{Error as RppalError, Gpio, Level, Mode};
-use librover::api;
+use rppal::gpio::{Gpio, Level, Mode};
+
+use librover::{api, util};
+use librover::Result as RoverResult;
 use libutil::SoftPwm;
+
+use crate::{Error, Result};
 
 // sensor input pins in BCM numbering
 const GPIO_IR_L: u8 = 4;
@@ -26,7 +28,9 @@ const GPIO_MOTOR_R1: u8 = 13;
 const GPIO_MOTOR_R2: u8 = 12;
 
 // pan/tilt servo control pins in BCM numbering
+#[allow(dead_code)]
 const GPIO_PAN_SERVO: u8 = 25;
+#[allow(dead_code)]
 const GPIO_TILT_SERVO: u8 = 24;
 
 // pan limits
@@ -48,29 +52,6 @@ const TILT_C_PWIDTH: i16 = 138;
 // Servoblaster control
 const SERVOBLASTER: &str = "/dev/servoblaster";
 
-type Result<T> = std::result::Result<T, RobohatError>;
-
-#[derive(Debug)]
-pub enum RobohatError {
-    Gpio,
-    GpioInitiaization(RppalError),
-    InvalidGpioChannel(u8),
-    InvalidValue(String),
-}
-
-impl Display for RobohatError {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            RobohatError::Gpio => write!(f, "GPIO operation error."),
-            RobohatError::GpioInitiaization(inner) => {
-                write!(f, "GPIO initialization failed: {}", inner)
-            }
-            RobohatError::InvalidGpioChannel(pin) => write!(f, "Invalid channel: {}", pin),
-            RobohatError::InvalidValue(s) => write!(f, "Invalid value of argument '{}'.", s),
-        }
-    }
-}
-
 pub struct RobohatRover {
     gpio: Arc<Mutex<Gpio>>,
     left_motor: (SoftPwm, SoftPwm),
@@ -79,10 +60,7 @@ pub struct RobohatRover {
 
 impl RobohatRover {
     pub fn new() -> Result<RobohatRover> {
-        let gpio =
-            Arc::new(Mutex::new(Gpio::new().map_err(|e| -> RobohatError {
-                RobohatError::GpioInitiaization(e)
-            })?));
+        let gpio = Arc::new(Mutex::new(Gpio::new()?));
 
         {
             let mut g = gpio.lock().unwrap();
@@ -94,20 +72,20 @@ impl RobohatRover {
             g.set_mode(GPIO_LINE_R, Mode::Input);
         }
 
-        let lm = (
+        let left_motor = (
             SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_L1, 10.0, 0.0),
             SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_L2, 10.0, 0.0),
         );
 
-        let rm = (
+        let right_motor = (
             SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_R1, 10.0, 0.0),
             SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_R2, 10.0, 0.0),
         );
 
         Ok(RobohatRover {
-            gpio: gpio,
-            left_motor: lm,
-            right_motor: rm,
+            gpio,
+            left_motor,
+            right_motor,
         })
     }
 
@@ -118,38 +96,30 @@ impl RobohatRover {
         if speed == 0 {
             motor
                 .0
-                .set_duty_cycle(0.0)
-                .map_err(|e| RobohatError::Gpio)?;
+                .set_duty_cycle(0.0)?;
             motor
                 .1
-                .set_duty_cycle(0.0)
-                .map_err(|e| RobohatError::Gpio)?;
+                .set_duty_cycle(0.0)?;
         } else if forward {
             motor
                 .0
-                .set_duty_cycle(duty_cycle)
-                .map_err(|e| RobohatError::Gpio)?;
+                .set_duty_cycle(duty_cycle)?;
             motor
                 .0
-                .set_frequency(frequency)
-                .map_err(|e| RobohatError::Gpio)?;
+                .set_frequency(frequency)?;
             motor
                 .1
-                .set_duty_cycle(0.0)
-                .map_err(|e| RobohatError::Gpio)?;
+                .set_duty_cycle(0.0)?;
         } else {
             motor
                 .0
-                .set_duty_cycle(0.0)
-                .map_err(|e| RobohatError::Gpio)?;
+                .set_duty_cycle(0.0)?;
             motor
                 .1
-                .set_duty_cycle(duty_cycle)
-                .map_err(|e| RobohatError::Gpio)?;
+                .set_duty_cycle(duty_cycle)?;
             motor
                 .1
-                .set_frequency(frequency)
-                .map_err(|e| RobohatError::Gpio)?;
+                .set_frequency(frequency)?;
         }
 
         Ok(())
@@ -163,7 +133,7 @@ impl RobohatRover {
                          e1_pw: i16,
                          e2_pw: i16,
                          mid_pw: i16|
-         -> i16 {
+                         -> i16 {
             let deg_lo = e1_deg.min(e2_deg);
             let deg_hi = e1_deg.max(e2_deg);
             let deg_span = deg_hi - deg_lo;
@@ -209,34 +179,39 @@ impl RobohatRover {
 }
 
 impl api::Mover for RobohatRover {
-    fn stop(&mut self) {
-        RobohatRover::set_motor_speed(&mut (self.left_motor), 0, false).unwrap();
-        RobohatRover::set_motor_speed(&mut (self.right_motor), 0, false).unwrap();
+    fn stop(&mut self) -> RoverResult<()> {
+        RobohatRover::set_motor_speed(&mut self.left_motor, 0, false)?;
+        RobohatRover::set_motor_speed(&mut self.right_motor, 0, false)?;
+        Ok(())
     }
 
-    fn move_forward(&mut self, speed: u8) {
-        RobohatRover::set_motor_speed(&mut (self.left_motor), speed, true).unwrap();
-        RobohatRover::set_motor_speed(&mut (self.right_motor), speed, true).unwrap();
+    fn move_forward(&mut self, speed: u8) -> RoverResult<()> {
+        RobohatRover::set_motor_speed(&mut self.left_motor, speed, true)?;
+        RobohatRover::set_motor_speed(&mut self.right_motor, speed, true)?;
+        Ok(())
     }
 
-    fn move_backward(&mut self, speed: u8) {
-        RobohatRover::set_motor_speed(&mut (self.left_motor), speed, false).unwrap();
-        RobohatRover::set_motor_speed(&mut (self.right_motor), speed, false).unwrap();
+    fn move_backward(&mut self, speed: u8) -> RoverResult<()> {
+        RobohatRover::set_motor_speed(&mut self.left_motor, speed, false)?;
+        RobohatRover::set_motor_speed(&mut self.right_motor, speed, false)?;
+        Ok(())
     }
 
-    fn spin_right(&mut self, speed: u8) {
-        RobohatRover::set_motor_speed(&mut (self.left_motor), speed, true).unwrap();
-        RobohatRover::set_motor_speed(&mut (self.right_motor), speed, false).unwrap();
+    fn spin_right(&mut self, speed: u8) -> RoverResult<()> {
+        RobohatRover::set_motor_speed(&mut self.left_motor, speed, true)?;
+        RobohatRover::set_motor_speed(&mut self.right_motor, speed, false)?;
+        Ok(())
     }
 
-    fn spin_left(&mut self, speed: u8) {
-        RobohatRover::set_motor_speed(&mut (self.left_motor), speed, false).unwrap();
-        RobohatRover::set_motor_speed(&mut (self.right_motor), speed, true).unwrap();
+    fn spin_left(&mut self, speed: u8) -> RoverResult<()> {
+        RobohatRover::set_motor_speed(&mut self.left_motor, speed, false)?;
+        RobohatRover::set_motor_speed(&mut self.right_motor, speed, true)?;
+        Ok(())
     }
 }
 
 impl api::Looker for RobohatRover {
-    fn look_at(&mut self, h: i16, v: i16) {
+    fn look_at(&mut self, h: i16, v: i16) -> RoverResult<()> {
         let (hpw, vpw) = RobohatRover::map_degrees_to_pulse_width(h, v);
 
         //        println!("Converted coordinates: [{}; {}]", hpw, vpw);
@@ -246,31 +221,33 @@ impl api::Looker for RobohatRover {
             .open(SERVOBLASTER)
             .expect("Failed to open Servoblaster device.");
 
-        servo_ctl.write(format!("7={}\n", hpw).as_bytes()).unwrap();
-        servo_ctl.write(format!("6={}\n", vpw).as_bytes()).unwrap();
+        servo_ctl.write(format!("7={}\n", hpw).as_bytes())?;
+        servo_ctl.write(format!("6={}\n", vpw).as_bytes())?;
+
+        Ok(())
     }
 }
 
 impl api::Sensor for RobohatRover {
-    fn get_obstacles(&self) -> Vec<bool> {
+    fn get_obstacles(&self) -> RoverResult<Vec<bool>> {
         let gpio = self.gpio.lock().unwrap();
 
-        vec![
-            gpio.read(GPIO_IR_L).unwrap() == Level::Low,
-            gpio.read(GPIO_IR_R).unwrap() == Level::Low,
-        ]
+        Ok(vec![
+            gpio.read(GPIO_IR_L).map_err(|e| Error::from(e))? == Level::Low,
+            gpio.read(GPIO_IR_R).map_err(|e| Error::from(e))? == Level::Low,
+        ])
     }
 
-    fn get_lines(&self) -> Vec<bool> {
+    fn get_lines(&self) -> RoverResult<Vec<bool>> {
         let gpio = self.gpio.lock().unwrap();
 
-        vec![
-            gpio.read(GPIO_LINE_L).unwrap() == Level::Low,
-            gpio.read(GPIO_LINE_R).unwrap() == Level::Low,
-        ]
+        Ok(vec![
+            gpio.read(GPIO_LINE_L).map_err(|e| Error::from(e))? == Level::Low,
+            gpio.read(GPIO_LINE_R).map_err(|e| Error::from(e))? == Level::Low,
+        ])
     }
 
-    fn get_distance(&mut self) -> f32 {
+    fn get_distance(&mut self) -> RoverResult<f32> {
         let mut gpio = self.gpio.lock().unwrap();
 
         gpio.set_mode(GPIO_SONAR, Mode::Output);
@@ -283,27 +260,31 @@ impl api::Sensor for RobohatRover {
         let timeout = Duration::from_millis(100);
         let mut timeout_guard = SystemTime::now();
         let mut pulse_start = timeout_guard.clone();
-        while gpio.read(GPIO_SONAR).unwrap() == Level::Low
-            && timeout_guard.elapsed().unwrap() < timeout
+        while gpio.read(GPIO_SONAR).map_err(|e| Error::from(e))? == Level::Low
+            && timeout_guard.elapsed().map_err(|e| Error::from(e))? < timeout
         {
             pulse_start = SystemTime::now();
         }
 
         timeout_guard = SystemTime::now();
         let mut pulse_end = timeout_guard.clone();
-        while gpio.read(GPIO_SONAR).unwrap() == Level::High
-            && timeout_guard.elapsed().unwrap() < timeout
+        while gpio.read(GPIO_SONAR).map_err(|e| Error::from(e))? == Level::High
+            && timeout_guard.elapsed().map_err(|e| Error::from(e))? < timeout
         {
             pulse_end = SystemTime::now();
         }
 
-        let pulse_width = pulse_end.duration_since(pulse_start).unwrap();
+        let pulse_width = pulse_end
+            .duration_since(pulse_start)
+            .map_err(|e| Error::from(e))?;
 
         let pulse_width_f32 =
             pulse_width.as_secs() as f32 + pulse_width.subsec_nanos() as f32 / 1000000000.0;
 
         let distance = SOUND_SPEED as f32 * pulse_width_f32;
 
-        distance / 2.0
+        Ok(distance / 2.0)
     }
 }
+
+impl util::SplittableRover for RobohatRover {}

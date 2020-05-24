@@ -1,41 +1,34 @@
-pub mod api {
-    pub trait Mover {
-        fn stop(&mut self);
-        fn move_forward(&mut self, speed: u8);
-        fn move_backward(&mut self, speed: u8);
-        fn spin_right(&mut self, speed: u8);
-        fn spin_left(&mut self, speed: u8);
-    }
+pub mod api;
+pub mod util;
 
-    pub trait Looker {
-        fn look_at(&mut self, h: i16, v: i16);
-    }
+#[derive(Debug)]
+pub enum Error {
+    Hardware(Box<dyn std::error::Error>),
+    Software(Box<dyn std::error::Error>)
+}
 
-    pub trait Sensor {
-        fn get_obstacles(&self) -> Vec<bool>;
-        fn get_lines(&self) -> Vec<bool>;
-        fn get_distance(&mut self) -> f32;
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Error::Hardware(e) => write!(f, "Hardware error: {}", e),
+            Error::Software(e) => write!(f, "Software error: {}", e),
+        }
     }
 }
 
-pub mod util {
-    // RaspberryPi model B+ physical pins to BCM map
-    const PIN_TO_GPIO_REV3: [i8; 41] = [
-        -1, -1, -1, 2, -1, 3, -1, 4, 14, -1, 15, 17, 18, 27, -1, 22, 23, -1, 24, 10, -1, 9, 24, 11,
-        7, -1, 7, -1, -1, 5, -1, 6, 12, 13, -1, 19, 16, 26, 20, -1, 21,
-    ];
-
-    // RaspberryPi model B+ BCM to physical pins map
-    const GPIO_TO_PIN_REV3: [i8; 33] = [
-        -1, -1, 3, 5, 7, 29, 31, 26, 24, 21, 19, 23, 32, 33, 8, 10, 36, 11, 12, 35, 38, 40, 15, 16,
-        18, 22, 37, 13, -1, -1, -1, -1, 0,
-    ];
-
-    pub fn bcm2pin(gpio_id: u8) -> i8 {
-        GPIO_TO_PIN_REV3[gpio_id as usize]
+impl std::error::Error for Error {
+    fn cause(&self) -> Option<&dyn std::error::Error> {
+        match self {
+            Error::Hardware(e) => Some(&**e),
+            Error::Software(e) => Some(&**e),
+        }
     }
+}
 
-    pub fn pin2bcm(pin_id: u8) -> i8 {
-        GPIO_TO_PIN_REV3[pin_id as usize]
+pub type Result<T> = std::result::Result<T, Error>;
+
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Self {
+        Error::Software(Box::new(e))
     }
 }

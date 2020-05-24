@@ -1,3 +1,3 @@
-mod softpwm;
+pub mod softpwm;
 
 pub use softpwm::SoftPwm;

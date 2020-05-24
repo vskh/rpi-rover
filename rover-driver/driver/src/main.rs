@@ -2,6 +2,8 @@ mod logger;
 
 use log::info;
 use libdriver::server::Server;
+use librobohat::RobohatRover;
+use librover::util::SplittableRover;
 
 const CONFIG_FILE: &str = "./Config";
 
@@ -25,9 +27,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut server = Server::new(&listen_addr)
         .await?;
 
+    // link driver server with actual rover control implementation
+    let mut rover = RobohatRover::new()?;
+
+    let (mover, looker, sensor) = rover.split();
+
+    server.register_mover(Some(mover));
+    server.register_looker(Some(looker));
+    server.register_sensor(Some(sensor));
+
     // start run loop
-    server.serve()
-        .await?;
+    server.serve().await?;
 
     info!("Rover driver finished.");
 

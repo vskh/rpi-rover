@@ -9,15 +9,17 @@ use librover::api::{Looker, Mover, Sensor};
 use crate::{Result, Error};
 use crate::contract::data::{MoveType, ProtocolMessage, StatusResponse};
 
-pub struct Server {
+pub struct Server<TMover, TLooker, TSensor>
+    where TMover: Mover, TLooker: Looker, TSensor: Sensor {
     listener: TcpListener,
-    mover: Option<Box<dyn Mover>>,
-    looker: Option<Box<dyn Looker>>,
-    sensor: Option<Box<dyn Sensor>>,
+    mover: Option<TMover>,
+    looker: Option<TLooker>,
+    sensor: Option<TSensor>,
 }
 
-impl Server {
-    pub async fn new(listen_address: &str) -> Result<Server> {
+impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
+    where TMover: Mover, TLooker: Looker, TSensor: Sensor {
+    pub async fn new(listen_address: &str) -> Result<Server<TMover, TLooker, TSensor>> {
         info!("Launching driver server on {}.", listen_address);
 
         let listener = TcpListener::bind(listen_address)
@@ -31,15 +33,15 @@ impl Server {
         })
     }
 
-    pub fn register_mover(&mut self, mover: Option<Box<dyn Mover>>) {
+    pub fn register_mover(&mut self, mover: Option<TMover>) {
         self.mover = mover;
     }
 
-    pub fn register_looker(&mut self, looker: Option<Box<dyn Looker>>) {
+    pub fn register_looker(&mut self, looker: Option<TLooker>) {
         self.looker = looker;
     }
 
-    pub fn register_sensor(&mut self, sensor: Option<Box<dyn Sensor>>) {
+    pub fn register_sensor(&mut self, sensor: Option<TSensor>) {
         self.sensor = sensor;
     }
 
@@ -84,10 +86,10 @@ impl Server {
 
                             if let Some(ref mut mover) = self.mover {
                                 match r.move_type {
-                                    MoveType::Forward => mover.move_forward(r.speed),
-                                    MoveType::Backward => mover.move_backward(r.speed),
-                                    MoveType::SpinCW => mover.spin_right(r.speed),
-                                    MoveType::SpinCCW => mover.spin_left(r.speed)
+                                    MoveType::Forward => mover.move_forward(r.speed)?,
+                                    MoveType::Backward => mover.move_backward(r.speed)?,
+                                    MoveType::SpinCW => mover.spin_right(r.speed)?,
+                                    MoveType::SpinCCW => mover.spin_left(r.speed)?
                                 }
 
                                 channel
@@ -105,7 +107,7 @@ impl Server {
                             trace!("[{}] Received look request: {:#?}", peer_address, r);
 
                             if let Some(ref mut looker) = self.looker {
-                                looker.look_at(r.x, r.y)
+                                looker.look_at(r.x, r.y)?
                             } else {
                                 warn!("[{}] Requested operation is not implemented.", peer_address);
 

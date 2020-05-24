@@ -47,7 +47,7 @@ impl Client {
                 Ok(message) => {
                     match message_extractor(message) {
                         Either::Left(value) => Ok(value),
-                        Either::Right(msg) => Err(Error::Driver(format!("Unexpected response: {:#?}", msg)))
+                        Either::Right(msg) => Err(Error::Internal(format!("Unexpected response: {:#?}", msg)))
                     }
                 }
                 Err(e) => {
@@ -57,7 +57,7 @@ impl Client {
             },
             None => {
                 error!("Connection closed.");
-                Err(Error::Driver("Connection to the driver lost.".to_owned()))
+                Err(Error::Internal("Connection to the driver lost.".to_owned()))
             }
         }
     }
@@ -89,7 +89,7 @@ impl Mover for Client {
         
         match status {
             StatusResponse::Success => Ok(()),
-            StatusResponse::Error(description) => Err(Error::Driver(description))
+            StatusResponse::Error(description) => Err(Error::Internal(description))
         }
     }
 
@@ -109,7 +109,7 @@ impl Mover for Client {
 
         match status {
             StatusResponse::Success => Ok(()),
-            StatusResponse::Error(description) => Err(Error::Driver(description))
+            StatusResponse::Error(description) => Err(Error::Internal(description))
         }
     }
 
@@ -129,7 +129,7 @@ impl Mover for Client {
 
         match status {
             StatusResponse::Success => Ok(()),
-            StatusResponse::Error(description) => Err(Error::Driver(description))
+            StatusResponse::Error(description) => Err(Error::Internal(description))
         }
     }
 
@@ -149,7 +149,7 @@ impl Mover for Client {
 
         match status {
             StatusResponse::Success => Ok(()),
-            StatusResponse::Error(description) => Err(Error::Driver(description))
+            StatusResponse::Error(description) => Err(Error::Internal(description))
         }
     }
 
@@ -169,7 +169,7 @@ impl Mover for Client {
 
         match status {
             StatusResponse::Success => Ok(()),
-            StatusResponse::Error(description) => Err(Error::Driver(description))
+            StatusResponse::Error(description) => Err(Error::Internal(description))
         }
     }
 }
