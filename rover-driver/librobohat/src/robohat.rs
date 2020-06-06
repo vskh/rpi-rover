@@ -260,23 +260,22 @@ impl api::Sensor for RobohatRover {
         let timeout = Duration::from_millis(100);
         let mut timeout_guard = SystemTime::now();
         let mut pulse_start = timeout_guard.clone();
-        while gpio.read(GPIO_SONAR).map_err(|e| Error::from(e))? == Level::Low
-            && timeout_guard.elapsed().map_err(|e| Error::from(e))? < timeout
+        while gpio.read(GPIO_SONAR)? == Level::Low
+            && timeout_guard.elapsed()? < timeout
         {
             pulse_start = SystemTime::now();
         }
 
         timeout_guard = SystemTime::now();
         let mut pulse_end = timeout_guard.clone();
-        while gpio.read(GPIO_SONAR).map_err(|e| Error::from(e))? == Level::High
-            && timeout_guard.elapsed().map_err(|e| Error::from(e))? < timeout
+        while gpio.read(GPIO_SONAR)? == Level::High
+            && timeout_guard.elapsed()? < timeout
         {
             pulse_end = SystemTime::now();
         }
 
         let pulse_width = pulse_end
-            .duration_since(pulse_start)
-            .map_err(|e| Error::from(e))?;
+            .duration_since(pulse_start)?;
 
         let pulse_width_f32 =
             pulse_width.as_secs() as f32 + pulse_width.subsec_nanos() as f32 / 1000000000.0;

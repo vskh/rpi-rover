@@ -5,8 +5,7 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use rppal::gpio::{Gpio, Level, Mode};
-
-use crate::result::LibError;
+use thiserror::Error as LibError;
 
 enum PwmUpdate {
     Stop,
