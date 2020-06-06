@@ -1,9 +1,12 @@
-use rppal::gpio::{Gpio, Level, Mode};
-use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc;
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
+
+use rppal::gpio::{Gpio, Level, Mode};
+
+use crate::result::LibError;
 
 enum PwmUpdate {
     Stop,
@@ -11,20 +14,13 @@ enum PwmUpdate {
     DutyCycle(f32),
 }
 
-#[derive(Debug)]
+#[derive(Debug, LibError)]
 pub enum Error {
+    #[error("PWM update error")]
     UpdateError,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "PWM worker update error")
-    }
-}
-
-impl std::error::Error for Error {}
 
 pub struct SoftPwm {
     channel: mpsc::Sender<PwmUpdate>,
