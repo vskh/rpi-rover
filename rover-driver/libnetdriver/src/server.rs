@@ -1,13 +1,13 @@
 use futures::{SinkExt, StreamExt};
-use log::{debug, error, warn, info, trace};
+use log::{debug, error, info, trace, warn};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_serde_cbor::Codec;
 use tokio_util::codec::Decoder;
 
 use librover::api::{Looker, Mover, Sensor};
 
-use crate::{Result, Error};
 use crate::contract::data::{MoveType, ProtocolMessage, StatusResponse};
+use crate::Result;
 
 pub struct Server<TMover, TLooker, TSensor>
     where TMover: Mover, TLooker: Looker, TSensor: Sensor {
@@ -20,7 +20,7 @@ pub struct Server<TMover, TLooker, TSensor>
 impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
     where TMover: Mover, TLooker: Looker, TSensor: Sensor {
     pub async fn new(listen_address: &str) -> Result<Server<TMover, TLooker, TSensor>> {
-        info!("Launching driver server on {}.", listen_address);
+        info!("Launching netdriver server on {}.", listen_address);
 
         let listener = TcpListener::bind(listen_address)
             .await?;
@@ -66,10 +66,20 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
         }
     }
 
+    fn map_result_to_status_response<T, E>(r: std::result::Result<T, E>) -> ProtocolMessage
+        where E: std::fmt::Display {
+        ProtocolMessage::StatusResponse(
+            match r {
+                Ok(_) => StatusResponse::Success,
+                Err(e) => StatusResponse::Error(e.to_string())
+            }
+        )
+    }
+
     async fn handle_connection(&mut self, socket: TcpStream) -> Result<()> {
         let peer_address = socket
             .peer_addr()
-            .map_or_else(|_| "unknown address".to_owned(), |addr| addr.to_string());
+            .map_or("unknown address".to_owned(), |addr| addr.to_string());
 
         debug!("[{}] New connection received.", peer_address);
 
@@ -85,29 +95,34 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
                             trace!("[{}] Processing move request: {:#?}", peer_address, r);
 
                             if let Some(ref mut mover) = self.mover {
-                                match r.move_type {
-                                    MoveType::Forward => mover.move_forward(r.speed)?,
-                                    MoveType::Backward => mover.move_backward(r.speed)?,
-                                    MoveType::SpinCW => mover.spin_right(r.speed)?,
-                                    MoveType::SpinCCW => mover.spin_left(r.speed)?
-                                }
+                                let opresult = match r.move_type {
+                                    MoveType::Forward => mover.move_forward(r.speed),
+                                    MoveType::Backward => mover.move_backward(r.speed),
+                                    MoveType::SpinCW => mover.spin_right(r.speed),
+                                    MoveType::SpinCCW => mover.spin_left(r.speed)
+                                };
 
                                 channel
-                                    .send(ProtocolMessage::StatusResponse(StatusResponse::Success))
-                                    .await?
+                                    .send(Self::map_result_to_status_response(opresult))
+                                    .await?;
                             } else {
                                 warn!("[{}] Requested operation is not implemented.", peer_address);
 
                                 channel
                                     .send(ProtocolMessage::StatusResponse(StatusResponse::Error("Unsupported operation.".to_owned())))
-                                    .await?
+                                    .await?;
                             }
                         }
                         ProtocolMessage::LookRequest(r) => {
                             trace!("[{}] Received look request: {:#?}", peer_address, r);
 
                             if let Some(ref mut looker) = self.looker {
-                                looker.look_at(r.x, r.y)?
+                                let opresult = looker
+                                    .look_at(r.x, r.y);
+
+                                channel
+                                    .send(Self::map_result_to_status_response(opresult))
+                                    .await?;
                             } else {
                                 warn!("[{}] Requested operation is not implemented.", peer_address);
 
@@ -129,7 +144,7 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
                 }
                 Err(e) => {
                     error!("[{}] Failed to receive message: {}", peer_address, e);
-                    return Err(Error::from(e));
+                    return Err(e.into());
                 }
             }
         }

@@ -9,7 +9,7 @@ const CONFIG_FILE: &str = "./Config";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    info!("Rover driver is starting up.");
+    info!("Rover netdriver is starting up.");
 
     // load settings
     let mut settings = config::Config::default();
@@ -21,13 +21,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let listen_addr = settings.get_str("listen")?;
 
-    info!("Starting driver on {}...", listen_addr);
+    info!("Starting netdriver on {}...", listen_addr);
 
     // create server
     let mut server = Server::new(&listen_addr)
         .await?;
 
-    // link driver server with actual rover control implementation
+    // link netdriver server with actual rover control implementation
     let mut rover = RobohatRover::new()?;
 
     let (mover, looker, sensor) = rover.split();
@@ -39,7 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // start run loop
     server.serve().await?;
 
-    info!("Rover driver finished.");
+    info!("Rover netdriver finished.");
 
     Ok(())
 }

@@ -1,9 +1,5 @@
-use async_trait::async_trait;
-use crate::Result;
-
 pub mod data {
-    use serde::{Serialize, Deserialize};
-
+    use serde::{Deserialize, Serialize};
 
     #[derive(Debug, Serialize, Deserialize)]
     pub enum ProtocolMessage {
@@ -62,23 +58,3 @@ pub mod data {
     }
 }
 
-#[async_trait]
-pub trait Mover {
-    async fn stop(&mut self) -> Result<()>;
-    async fn move_forward(&mut self, speed: u8) -> Result<()>;
-    async fn move_backward(&mut self, speed: u8) -> Result<()>;
-    async fn spin_right(&mut self, speed: u8) -> Result<()>;
-    async fn spin_left(&mut self, speed: u8) -> Result<()>;
-}
-
-#[async_trait]
-pub trait Looker {
-    async fn look_at(&mut self, h: i16, v: i16) -> Result<()>;
-}
-
-#[async_trait]
-pub trait Sensor {
-    async fn get_obstacles(&self) -> Result<()>;
-    async fn get_lines(&self) -> Result<()>;
-    async fn get_distance(&mut self) -> Result<()>;
-}

@@ -16,6 +16,6 @@ tokio = { version = "0.2.6", features = ["dns", "macros", "rt-core", "tcp"] }
 tokio-util = { version = "0.2.0", features = ["codec"] }
 serde = { version = "1.0", features = ["derive"] }
 tokio-serde-cbor = { version = "0.4.0" }
-libdriver = { path = "../libdriver" }
-librobohat = { path = "../librobohat" }
-librover = { path = "../librover" }
+libdriver = { path = "../libnetdriver" }
+librobohat = { path = "../libdriver-robohat" }
+librover = { path = "../libdriver" }

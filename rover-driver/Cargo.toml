@@ -1,10 +1,10 @@
 [workspace]
 members = [
     "api-server",
-    "driver",
+    "netdriver",
+    "libnetdriver",
+    "libdriver-robohat",
     "libdriver",
-    "librobohat",
-    "librover",
     "ridecontrol",
     "libutil"
 ]
