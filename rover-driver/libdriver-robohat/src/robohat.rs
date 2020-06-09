@@ -7,7 +7,6 @@ use std::time::{Duration, SystemTime};
 use rppal::gpio::{Gpio, Level, Mode};
 
 use librover::{api, util};
-use librover::Result as RoverResult;
 use libutil::SoftPwm;
 
 use crate::{Error, Result};
@@ -179,31 +178,33 @@ impl RobohatRover {
 }
 
 impl api::Mover for RobohatRover {
-    fn stop(&mut self) -> RoverResult<()> {
+    type Error = Error;
+    
+    fn stop(&mut self) -> Result<()> {
         RobohatRover::set_motor_speed(&mut self.left_motor, 0, false)?;
         RobohatRover::set_motor_speed(&mut self.right_motor, 0, false)?;
         Ok(())
     }
 
-    fn move_forward(&mut self, speed: u8) -> RoverResult<()> {
+    fn move_forward(&mut self, speed: u8) -> Result<()> {
         RobohatRover::set_motor_speed(&mut self.left_motor, speed, true)?;
         RobohatRover::set_motor_speed(&mut self.right_motor, speed, true)?;
         Ok(())
     }
 
-    fn move_backward(&mut self, speed: u8) -> RoverResult<()> {
+    fn move_backward(&mut self, speed: u8) -> Result<()> {
         RobohatRover::set_motor_speed(&mut self.left_motor, speed, false)?;
         RobohatRover::set_motor_speed(&mut self.right_motor, speed, false)?;
         Ok(())
     }
 
-    fn spin_right(&mut self, speed: u8) -> RoverResult<()> {
+    fn spin_right(&mut self, speed: u8) -> Result<()> {
         RobohatRover::set_motor_speed(&mut self.left_motor, speed, true)?;
         RobohatRover::set_motor_speed(&mut self.right_motor, speed, false)?;
         Ok(())
     }
 
-    fn spin_left(&mut self, speed: u8) -> RoverResult<()> {
+    fn spin_left(&mut self, speed: u8) -> Result<()> {
         RobohatRover::set_motor_speed(&mut self.left_motor, speed, false)?;
         RobohatRover::set_motor_speed(&mut self.right_motor, speed, true)?;
         Ok(())
@@ -211,7 +212,9 @@ impl api::Mover for RobohatRover {
 }
 
 impl api::Looker for RobohatRover {
-    fn look_at(&mut self, h: i16, v: i16) -> RoverResult<()> {
+    type Error = Error;
+
+    fn look_at(&mut self, h: i16, v: i16) -> Result<()> {
         let (hpw, vpw) = RobohatRover::map_degrees_to_pulse_width(h, v);
 
         //        println!("Converted coordinates: [{}; {}]", hpw, vpw);
@@ -229,25 +232,27 @@ impl api::Looker for RobohatRover {
 }
 
 impl api::Sensor for RobohatRover {
-    fn get_obstacles(&self) -> RoverResult<Vec<bool>> {
+    type Error = Error;
+
+    fn get_obstacles(&self) -> Result<Vec<bool>> {
         let gpio = self.gpio.lock().unwrap();
 
         Ok(vec![
-            gpio.read(GPIO_IR_L).map_err(|e| Error::from(e))? == Level::Low,
-            gpio.read(GPIO_IR_R).map_err(|e| Error::from(e))? == Level::Low,
+            gpio.read(GPIO_IR_L)? == Level::Low,
+            gpio.read(GPIO_IR_R)? == Level::Low,
         ])
     }
 
-    fn get_lines(&self) -> RoverResult<Vec<bool>> {
+    fn get_lines(&self) -> Result<Vec<bool>> {
         let gpio = self.gpio.lock().unwrap();
 
         Ok(vec![
-            gpio.read(GPIO_LINE_L).map_err(|e| Error::from(e))? == Level::Low,
-            gpio.read(GPIO_LINE_R).map_err(|e| Error::from(e))? == Level::Low,
+            gpio.read(GPIO_LINE_L)? == Level::Low,
+            gpio.read(GPIO_LINE_R)? == Level::Low,
         ])
     }
 
-    fn get_distance(&mut self) -> RoverResult<f32> {
+    fn get_distance(&mut self) -> Result<f32> {
         let mut gpio = self.gpio.lock().unwrap();
 
         gpio.set_mode(GPIO_SONAR, Mode::Output);
@@ -286,4 +291,4 @@ impl api::Sensor for RobohatRover {
     }
 }
 
-impl util::SplittableRover for RobohatRover {}
+impl util::splittable::SplittableRover for RobohatRover {}

@@ -5,7 +5,8 @@ authors = ["Vadym S. Khondar <vadym@khondar.name>"]
 edition = "2018"
 
 [dependencies]
+anyhow = "1.0.31"
 rppal = "0.9.0"
 thiserror = "1.0.19"
-librover = { path = "../librover" }
+librover = { path = "../libdriver" }
 libutil = { path = "../libutil" }
