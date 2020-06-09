@@ -1,5 +1,5 @@
 [package]
-name = "librobohat"
+name = "libdriver-robohat"
 version = "0.1.0"
 authors = ["Vadym S. Khondar <vadym@khondar.name>"]
 edition = "2018"
@@ -8,5 +8,5 @@ edition = "2018"
 anyhow = "1.0.31"
 rppal = "0.9.0"
 thiserror = "1.0.19"
-librover = { path = "../libdriver" }
+libdriver = { path = "../libdriver" }
 libutil = { path = "../libutil" }

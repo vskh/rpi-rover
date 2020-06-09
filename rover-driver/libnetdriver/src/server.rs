@@ -4,7 +4,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_serde_cbor::Codec;
 use tokio_util::codec::Decoder;
 
-use librover::api::{Looker, Mover, Sensor};
+use libdriver::api::{Looker, Mover, Sensor};
 
 use crate::contract::data::{MoveType, ProtocolMessage, StatusResponse};
 use crate::Result;

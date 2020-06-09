@@ -6,7 +6,7 @@ use std::time::{Duration, SystemTime};
 
 use rppal::gpio::{Gpio, Level, Mode};
 
-use librover::{api, util};
+use libdriver::{api, util};
 use libutil::SoftPwm;
 
 use crate::{Error, Result};

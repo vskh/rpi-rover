@@ -2,9 +2,9 @@
 members = [
     "api-server",
     "netdriver",
-    "libnetdriver",
-    "libdriver-robohat",
-    "libdriver",
     "ridecontrol",
+    "libdriver",
+    "libdriver-robohat",
+    "libnetdriver",
     "libutil"
 ]

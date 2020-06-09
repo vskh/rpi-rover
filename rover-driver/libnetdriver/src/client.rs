@@ -7,7 +7,7 @@ use tokio_serde_cbor::Codec;
 use tokio_util::codec::{Decoder, Framed};
 
 use async_trait::async_trait;
-use librover::api::{AsyncMover, AsyncLooker, AsyncSensor};
+use libdriver::api::{AsyncMover, AsyncLooker, AsyncSensor};
 
 use crate::{Error, Result};
 use crate::contract::data;
