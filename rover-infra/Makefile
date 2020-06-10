@@ -44,7 +44,7 @@ prebuild-servoblaster: servoblaster/src
 rover-firmware/target:
 	cp -r ../rover-firmware/target rover-firmware/target
 
-prebuild-rover-firmware: rover-firmware
+prebuild-rover-firmware: rover-firmware/target
 
 $(BUILD_TARGETS): pre-build $(PREBUILD_TARGETS)
 	docker buildx build $(@:build-%=%) \
