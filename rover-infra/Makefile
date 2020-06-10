@@ -7,12 +7,12 @@ IMAGEPLATFORM		?= linux/arm/v7
 TARGETPLATFORM 		?= armv7-unknown-linux-gnueabihf
 BUILDERNAME			?= rpi-rover-builder-$(BUILDID)
 
-CONTAINERS 			= rproxy wifiap servoblaster rover-api
-PREBUILD_TARGETS	= prebuild-servoblaster prebuild-rover-api
+CONTAINERS 			= rproxy wifiap servoblaster rover-firmware
+PREBUILD_TARGETS	= prebuild-servoblaster prebuild-rover-firmware
 BUILD_TARGETS		= $(CONTAINERS:%=build-%)
 PUBLISH_TARGETS		= $(CONTAINERS:%=publish-%)
 CLEAN_TARGETS		= $(CONTAINERS:%=clean-%)
-CLEAN_EXTRA_TARGETS = clean-servoblaster-extra clean-rover-api-extra
+CLEAN_EXTRA_TARGETS = clean-servoblaster-extra clean-rover-firmware-extra
 
 build: $(BUILD_TARGETS) post-build
 
@@ -44,7 +44,7 @@ prebuild-servoblaster: servoblaster/src
 rover-firmware/target:
 	cp -r ../rover-firmware/target rover-firmware/target
 
-prebuild-rover-api: rover-firmware
+prebuild-rover-firmware: rover-firmware
 
 $(BUILD_TARGETS): pre-build $(PREBUILD_TARGETS)
 	docker buildx build $(@:build-%=%) \
@@ -62,8 +62,8 @@ $(PUBLISH_TARGETS): pre-publish
 clean-servoblaster-extra:
 	rm -rf servoblaster/src
 
-clean-rover-api-extra:
-	rm -rf rover-api/target
+clean-rover-firmware-extra:
+	rm -rf rover-firmware/target
 
 $(CLEAN_TARGETS): $(CLEAN_EXTRA_TARGETS) post-build
 	docker images --filter="reference=$(@:clean-%=%):*" --format="{{.ID}}" | sort -u | xargs -r docker rmi --force

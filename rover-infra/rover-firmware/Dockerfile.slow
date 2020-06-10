@@ -3,9 +3,9 @@
 
 FROM raspbian/stretch:latest AS builder
 
-COPY ./src /rover-api
+COPY ./src /rover-firmware
 
-WORKDIR /rover-api
+WORKDIR /rover-firmware
 
 RUN wget -qO - https://sh.rustup.rs | sh -s -- -y
 RUN apt update && apt -y upgrade
@@ -15,7 +15,7 @@ RUN . $HOME/.cargo/env && \
 
 FROM raspbian/stretch:latest
 
-COPY --from builder /rover-api/target/release/api-server /api-server
+COPY --from builder /rover-firmware/target/release/api-server /api-server
 
 ENTRYPOINT ["/api-server"]
 
