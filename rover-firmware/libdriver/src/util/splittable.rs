@@ -59,9 +59,9 @@ impl<'a, T> Sensor for SensorPart<'a, T> where T: Sensor {
         sensor.get_lines()
     }
 
-    fn get_distance(&mut self) -> Result<f32, Self::Error> {
+    fn scan_distance(&mut self) -> Result<f32, Self::Error> {
         let mut sensor = self.0.lock().unwrap();
-        sensor.get_distance()
+        sensor.scan_distance()
     }
 }
 

@@ -25,7 +25,7 @@ pub trait Sensor {
 
     fn get_obstacles(&self) -> Result<Vec<bool>, Self::Error>;
     fn get_lines(&self) -> Result<Vec<bool>, Self::Error>;
-    fn get_distance(&mut self) -> Result<f32, Self::Error>;
+    fn scan_distance(&mut self) -> Result<f32, Self::Error>;
 }
 
 #[async_trait]
@@ -52,7 +52,7 @@ pub trait AsyncSensor {
 
     async fn get_obstacles(&self) -> Result<Vec<bool>, Self::Error>;
     async fn get_lines(&self) -> Result<Vec<bool>, Self::Error>;
-    async fn get_distance(&mut self) -> Result<f32, Self::Error>;
+    async fn scan_distance(&mut self) -> Result<f32, Self::Error>;
 }
 
 impl<T> Mover for T where T: AsyncMover {
@@ -98,7 +98,7 @@ impl<T> Sensor for T where T: AsyncSensor {
         block_on(AsyncSensor::get_lines(self))
     }
 
-    fn get_distance(&mut self) -> Result<f32, Self::Error> {
-        block_on(AsyncSensor::get_distance(self))
+    fn scan_distance(&mut self) -> Result<f32, Self::Error> {
+        block_on(AsyncSensor::scan_distance(self))
     }
 }

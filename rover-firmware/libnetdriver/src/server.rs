@@ -6,7 +6,7 @@ use tokio_util::codec::Decoder;
 
 use libdriver::api::{Looker, Mover, Sensor};
 
-use crate::contract::data::{MoveType, ProtocolMessage, StatusResponse};
+use crate::contract::data::{MoveType, ProtocolMessage, StatusResponse, SenseRequest, SenseResponse};
 use crate::Result;
 
 pub struct Server<TMover, TLooker, TSensor>
@@ -114,7 +114,7 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
                             }
                         }
                         ProtocolMessage::LookRequest(r) => {
-                            trace!("[{}] Received look request: {:#?}", peer_address, r);
+                            trace!("[{}] Processing look request: {:#?}", peer_address, r);
 
                             if let Some(ref mut looker) = self.looker {
                                 let opresult = looker
@@ -132,11 +132,50 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
                             }
                         }
                         ProtocolMessage::SenseRequest(r) => {
-                            trace!("[{}] Received sense request: {:#?}", peer_address, r)
+                            trace!("[{}] Processing sense request: {:#?}", peer_address, r);
+
+                            if let Some(ref mut sensor) = self.sensor {
+                                match r {
+                                    SenseRequest::Distance => {
+                                        let opresult = match sensor.scan_distance() {
+                                            Ok(distance) => SenseResponse::Distance(distance),
+                                            Err(e) => SenseResponse::Error(e.to_string())
+                                        };
+
+                                        channel
+                                            .send(ProtocolMessage::SenseResponse(opresult))
+                                            .await?;
+                                    },
+                                    SenseRequest::Line => {
+                                        let opresult = match sensor.get_lines() {
+                                            Ok(line_states) => SenseResponse::Line(line_states),
+                                            Err(e) => SenseResponse::Error(e.to_string())
+                                        };
+
+                                        channel
+                                            .send(ProtocolMessage::SenseResponse(opresult))
+                                            .await?;
+                                    },
+                                    SenseRequest::Obstacle => {
+                                        let opresult = match sensor.get_obstacles() {
+                                            Ok(obstacle_states) => SenseResponse::Obstacle(obstacle_states),
+                                            Err(e) => SenseResponse::Error(e.to_string())
+                                        };
+
+                                        channel
+                                            .send(ProtocolMessage::SenseResponse(opresult))
+                                            .await?;
+                                    }
+                                }
+                            } else {
+                                warn!("[{}] Requested operation is not implemented.", peer_address);
+
+                                channel
+                                    .send(ProtocolMessage::SenseResponse(SenseResponse::Error("Unsupported operation.".to_owned())))
+                                    .await?
+                            }
                         }
-                        ProtocolMessage::SenseSubscribeRequest(r) => {
-                            trace!("[{}] Received sense subscribe request: {:#?}", peer_address, r)
-                        }
+
                         _ => warn!("[{}] Received unsupported request type: {:#?}", peer_address, message),
                     }
 

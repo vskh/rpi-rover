@@ -6,7 +6,6 @@ pub mod data {
         MoveRequest(MoveRequest),
         LookRequest(LookRequest),
         SenseRequest(SenseRequest),
-        SenseSubscribeRequest(SenseSubscribeRequest),
         SenseResponse(SenseResponse),
         StatusResponse(StatusResponse)
     }
@@ -33,22 +32,17 @@ pub mod data {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub enum SenseRequest {
-        Obstacle(u8),
-        Line(u8),
+        Obstacle,
+        Line,
         Distance
     }
 
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct SenseSubscribeRequest {
-        on_change: bool,
-        interval: u16
-    }
-
-    #[derive(Debug, Serialize, Deserialize)]
     pub enum SenseResponse {
-        Obstacle(u8, bool),
-        Line(u8, bool),
-        Distance(f32)
+        Obstacle(Vec<bool>),
+        Line(Vec<bool>),
+        Distance(f32),
+        Error(String)
     }
 
     #[derive(Debug, Serialize, Deserialize)]

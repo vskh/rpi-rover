@@ -175,7 +175,7 @@ impl<T> RideController<T> where T: Mover + Looker + Sensor {
                         obstacles[1],
                         lines[0],
                         lines[1],
-                        self.rover.get_distance()?,
+                        self.rover.scan_distance()?,
                     )?;
                     thread::sleep(Duration::from_millis(100));
                 }

@@ -252,7 +252,7 @@ impl api::Sensor for RobohatRover {
         ])
     }
 
-    fn get_distance(&mut self) -> Result<f32> {
+    fn scan_distance(&mut self) -> Result<f32> {
         let mut gpio = self.gpio.lock().unwrap();
 
         gpio.set_mode(GPIO_SONAR, Mode::Output);
