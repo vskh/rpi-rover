@@ -10,7 +10,8 @@ services:
   servoblaster:
     image: ${REPOPREFIX}servoblaster:${TAG}
     restart: always
-    privileged: true
+    devices:
+      - "/dev/mem:/dev/mem"
     volumes:
       - servoblaster:/servoblaster
 
@@ -27,6 +28,8 @@ services:
     devices:
       - "/dev/gpiomem:/dev/gpiomem"
       - "/dev/gpiochip0:/dev/gpiochip0"
+    volumes:
+      - servoblaster:/extdev
     restart: always
 
   rover-api-http:

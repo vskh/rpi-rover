@@ -49,7 +49,7 @@ const TILT_D_CUT_PWIDTH: i16 = 210;
 const TILT_C_PWIDTH: i16 = 138;
 
 // Servoblaster control
-const SERVOBLASTER: &str = "/dev/servoblaster";
+const SERVOBLASTER: &str = "/extdev/servoblaster";
 
 pub struct RobohatRover {
     gpio: Arc<Mutex<Gpio>>,
