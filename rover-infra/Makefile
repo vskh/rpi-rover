@@ -41,17 +41,19 @@ servoblaster/src:
 
 prebuild-servoblaster: servoblaster/src
 
-rover-api-net/build:
-	mkdir -p rover-api-net/build
-	cp -v ../rover-firmware/target/$(TARGETPLATFORM)/release/api-net rover-api-net/build
+rover-api-net/app:
+	mkdir -p rover-api-net/app
+	cp -v ../rover-firmware/api-net/Config.toml rover-api-net/app
+	cp -v ../rover-firmware/api-net/log4rs.yml rover-api-net/app
+	cp -v ../rover-firmware/target/$(TARGETPLATFORM)/release/api-net rover-api-net/app
 
-prebuild-rover-api-net: rover-api-net/build
+prebuild-rover-api-net: rover-api-net/app
 
-rover-api-http/build:
-	mkdir -p rover-api-http/build
-	cp -v ../rover-firmware/target/$(TARGETPLATFORM)/release/api-http rover-api-http/build
+rover-api-http/app:
+	mkdir -p rover-api-http/app
+	cp -v ../rover-firmware/target/$(TARGETPLATFORM)/release/api-http rover-api-http/app
 
-prebuild-rover-api-http: rover-api-http/build
+prebuild-rover-api-http: rover-api-http/app
 
 $(BUILD_TARGETS): pre-build $(PREBUILD_TARGETS)
 	docker buildx build $(@:build-%=%) \

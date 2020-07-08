@@ -2,7 +2,7 @@ FROM vskhimages/docker-raspberry-pi-runner:latest
 
 ARG TARGETPLATFORM=arm-unknown-linux-gnueabihf
 
-COPY ./build/api-net /
+COPY ./app /
 
-ENTRYPOINT ["/api-net"]
+ENTRYPOINT ["/app/api-net"]
 # end

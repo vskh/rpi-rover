@@ -20,6 +20,18 @@ services:
       - 8080:80
     restart: always
 
+  rover-api-net:
+    image: ${REPOPREFIX}rover-api-net:${TAG}
+    ports:
+      - 5757:5757
+    restart: always
+
+  rover-api-http:
+    image: ${REPOPREFIX}rover-api-http:${TAG}
+    ports:
+      - 8080:80
+    restart: always
+
 volumes:
   servoblaster:
 
