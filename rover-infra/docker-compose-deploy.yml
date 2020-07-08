@@ -17,7 +17,7 @@ services:
   rproxy:
     image: ${REPOPREFIX}rproxy:${TAG}
     ports:
-      - 8080:80
+      - 80:80
     restart: always
 
   rover-api-net:

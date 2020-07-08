@@ -4,5 +4,7 @@ ARG TARGETPLATFORM=arm-unknown-linux-gnueabihf
 
 COPY ./app /app
 
+EXPOSE 5757/tcp
+
 ENTRYPOINT ["/app/api-net"]
 # end

@@ -6,7 +6,7 @@ use libdriver::util::splittable::SplittableRover;
 
 mod logger;
 
-const CONFIG_FILE: &str = "./Config";
+const CONFIG_FILE: &str = "./Config.toml";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
