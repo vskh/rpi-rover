@@ -3,7 +3,12 @@ name = "ridecontrol"
 version = "0.1.0"
 authors = ["Vadym S. Khondar <vadym@khondar.name>"]
 edition = "2018"
+description = "Raspberry Pi Rover command-line control interface."
 
 [dependencies]
+clap = "2.33.1"
+tokio = { version = "0.2.6", features = ["dns", "macros", "rt-core", "tcp"] }
+libdriver = { path="../libdriver" }
 libdriver-robohat = { path = "../libdriver-robohat" }
+libapi-net = { path = "../libapi-net" }
 libridecontrol = { path = "../libridecontrol" }
