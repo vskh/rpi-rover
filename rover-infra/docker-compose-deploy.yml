@@ -12,6 +12,9 @@ services:
     restart: always
     devices:
       - "/dev/mem:/dev/mem"
+      - "/dev/vcio:/dev/vcio"
+    cap_add:
+      - SYS_RAWIO
     volumes:
       - servoblaster:/servoblaster
 
