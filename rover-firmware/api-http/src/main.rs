@@ -15,7 +15,7 @@ fn main() {
             .resource("/get/lines", |r| r.f(controllers::get_lines))
             .resource("/get/distance", |r| r.f(controllers::get_distance))
     })
-    .bind("0.0.0.0:8080")
+    .bind("0.0.0.0:80")
     .unwrap()
     .run();
 }

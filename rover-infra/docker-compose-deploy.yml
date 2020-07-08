@@ -28,8 +28,6 @@ services:
 
   rover-api-http:
     image: ${REPOPREFIX}rover-api-http:${TAG}
-    ports:
-      - 8080:80
     restart: always
 
 volumes:
