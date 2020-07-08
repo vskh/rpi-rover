@@ -5,6 +5,7 @@ BUILDID				?= latest
 
 IMAGEPLATFORM		?= linux/arm/v7
 TARGETPLATFORM 		?= armv7-unknown-linux-gnueabihf
+BUILDPROFILE 		?= release
 BUILDERNAME			?= rpi-rover-builder-$(BUILDID)
 
 CONTAINERS 			= rproxy wifiap servoblaster rover-api-net rover-api-http
@@ -45,13 +46,13 @@ rover-api-net/app:
 	mkdir -p rover-api-net/app
 	cp -v ../rover-firmware/api-net/Config.toml rover-api-net/app
 	cp -v ../rover-firmware/api-net/log4rs.yml rover-api-net/app
-	cp -v ../rover-firmware/target/$(TARGETPLATFORM)/release/api-net rover-api-net/app
+	cp -v ../rover-firmware/target/$(TARGETPLATFORM)/$(BUILDPROFILE)/api-net rover-api-net/app
 
 prebuild-rover-api-net: rover-api-net/app
 
 rover-api-http/app:
 	mkdir -p rover-api-http/app
-	cp -v ../rover-firmware/target/$(TARGETPLATFORM)/release/api-http rover-api-http/app
+	cp -v ../rover-firmware/target/$(TARGETPLATFORM)/$(BUILDPROFILE)/api-http rover-api-http/app
 
 prebuild-rover-api-http: rover-api-http/app
 

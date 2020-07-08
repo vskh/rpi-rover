@@ -29,6 +29,7 @@
 #
 
 BUILDID						?= latest
+BUILDPROFILE 				?= release
 IMAGEPLATFORM				?= linux/arm/v7
 TARGETPLATFORM 				?= arm7-unknown-linux-gnueabihf
 
