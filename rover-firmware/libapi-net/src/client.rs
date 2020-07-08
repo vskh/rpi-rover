@@ -51,7 +51,7 @@ impl Client {
 
     async fn exchange<T, F>(&self, request: ProtocolMessage, response_processor: F) -> Result<T>
         where F: Fn(ProtocolMessage) -> Either<Result<T>, ProtocolMessage> {
-        trace!("Request to netdriver: {:#?}", request);
+        trace!("Request to api-net: {:#?}", request);
 
         self.channel
             .lock()
@@ -66,7 +66,7 @@ impl Client {
         match r {
             Some(response) => match response {
                 Ok(message) => {
-                    trace!("Response from netdriver: {:#?}", message);
+                    trace!("Response from api-net: {:#?}", message);
 
                     match response_processor(message) {
                         Either::Left(value) => value,

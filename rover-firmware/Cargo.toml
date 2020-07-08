@@ -1,11 +1,11 @@
 [workspace]
 members = [
-    "api-server",
-    "netdriver",
+    "api-http",
+    "api-net",
     "ridecontrol",
     "libdriver",
     "libdriver-robohat",
-    "libnetdriver",
+    "libapi-net",
     "libridecontrol",
     "libutil"
 ]

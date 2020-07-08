@@ -1,7 +1,7 @@
 use log::info;
 
 use libdriver_robohat::RobohatRover;
-use libnetdriver::server::Server;
+use libapi_net::server::Server;
 use libdriver::util::splittable::SplittableRover;
 
 mod logger;
@@ -10,7 +10,7 @@ const CONFIG_FILE: &str = "./Config";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    info!("Rover netdriver is starting up.");
+    info!("Rover api-net is starting up.");
 
     // load settings
     let mut settings = config::Config::default();
@@ -22,13 +22,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let listen_addr = settings.get_str("listen")?;
 
-    info!("Starting netdriver on {}...", listen_addr);
+    info!("Starting api-net on {}...", listen_addr);
 
     // create server
     let mut server = Server::new(&listen_addr)
         .await?;
 
-    // link netdriver server with actual rover control implementation
+    // link api-net server with actual rover control implementation
     let mut rover = RobohatRover::new()?;
 
     let (mover, looker, sensor) = rover.split();
@@ -40,7 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // start run loop
     server.serve().await?;
 
-    info!("Rover netdriver finished.");
+    info!("Rover api-net finished.");
 
     Ok(())
 }

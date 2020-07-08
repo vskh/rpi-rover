@@ -20,7 +20,7 @@ pub struct Server<TMover, TLooker, TSensor>
 impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
     where TMover: Mover, TLooker: Looker, TSensor: Sensor {
     pub async fn new(listen_address: &str) -> Result<Server<TMover, TLooker, TSensor>> {
-        info!("Launching netdriver server on {}.", listen_address);
+        info!("Launching api-net server on {}.", listen_address);
 
         let listener = TcpListener::bind(listen_address)
             .await?;

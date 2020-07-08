@@ -11,7 +11,7 @@ pub enum Error {
     #[error("Client error: {0:?}")]
     Client(String),
 
-    #[error("No connection to netdriver server.")]
+    #[error("No connection to api-net server.")]
     Disconnected,
 
     #[error("IO error: {0:?}")]
