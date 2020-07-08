@@ -59,8 +59,8 @@ pub struct RobohatRover {
 
 impl RobohatRover {
     pub fn new() -> Result<RobohatRover> {
-        let gpio = Arc::new(Mutex::new(Gpio::new()?));
 
+        let gpio = Arc::new(Mutex::new(Gpio::new()?));
         {
             let mut g = gpio.lock().unwrap();
 

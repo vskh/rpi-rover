@@ -19,3 +19,4 @@ tokio-serde-cbor = { version = "0.4.0" }
 libdriver = { path = "../libdriver" }
 libdriver-robohat = { path = "../libdriver-robohat" }
 libapi-net = { path = "../libapi-net" }
+libutil = { path = "../libutil" }

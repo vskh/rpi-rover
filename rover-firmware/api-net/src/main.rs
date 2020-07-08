@@ -1,10 +1,9 @@
-use std::path::PathBuf;
-
 use log::info;
 
 use libapi_net::server::Server;
 use libdriver::util::splittable::SplittableRover;
 use libdriver_robohat::RobohatRover;
+use libutil::sys::normalize_path;
 
 mod logger;
 
@@ -14,18 +13,27 @@ const CONFIG_FILE: &str = "Config.toml";
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Rover api-net is starting up.");
 
+    let self_path = std::env::current_exe()
+        .expect("Could not get current executable path.");
+    let _parent_dir = self_path
+        .parent()
+        .expect("Could not get current executable containing directory.");
+    let current_dir = std::env::current_dir()
+        .expect("Could not get current working directory.");
+
     // load settings
-    let current_exe = std::env::current_exe().expect("Could not get current executable path.");
-    let config_dir = current_exe.parent().expect("Could not get current executable containing directory.");
-    let mut config_path = PathBuf::from(config_dir);
-    config_path.push(CONFIG_FILE);
+    let config_path = normalize_path(CONFIG_FILE, &current_dir);
 
     let mut settings = config::Config::default();
     settings
-        .merge(config::File::with_name(&(config_path.to_string_lossy())))?;
+        .merge(config::File::with_name(&config_path))?;
 
     // initialize logging
-    logger::init_log(settings.get_str("log_config").ok())?;
+    logger::init_log(
+        settings.get_str("log_config")
+        .map(|r| { normalize_path(&r, &current_dir) })
+        .ok()
+    )?;
 
     let listen_addr = settings.get_str("listen")?;
 

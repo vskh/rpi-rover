@@ -22,8 +22,10 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
     pub async fn new(listen_address: &str) -> Result<Server<TMover, TLooker, TSensor>> {
         info!("Launching api-net server on {}.", listen_address);
 
+        trace!("Opening TCP listener on {}.", listen_address);
         let listener = TcpListener::bind(listen_address)
             .await?;
+        trace!("Listener opened.");
 
         Ok(Server {
             listener,
