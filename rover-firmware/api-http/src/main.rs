@@ -3,7 +3,7 @@ use actix_web::{server, App};
 mod controllers;
 
 fn main() {
-    println!("Starting API server on port 8080.");
+    println!("Starting API server on port 80.");
     server::new(|| {
         App::new()
             .resource("/move/forward", |r| r.f(controllers::move_forward))

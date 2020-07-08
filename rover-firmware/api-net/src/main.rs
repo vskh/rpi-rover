@@ -1,21 +1,28 @@
+use std::path::PathBuf;
+
 use log::info;
 
-use libdriver_robohat::RobohatRover;
 use libapi_net::server::Server;
 use libdriver::util::splittable::SplittableRover;
+use libdriver_robohat::RobohatRover;
 
 mod logger;
 
-const CONFIG_FILE: &str = "./Config.toml";
+const CONFIG_FILE: &str = "Config.toml";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Rover api-net is starting up.");
 
     // load settings
+    let current_exe = std::env::current_exe().expect("Could not get current executable path.");
+    let config_dir = current_exe.parent().expect("Could not get current executable containing directory.");
+    let mut config_path = PathBuf::from(config_dir);
+    config_path.push(CONFIG_FILE);
+
     let mut settings = config::Config::default();
     settings
-        .merge(config::File::with_name(CONFIG_FILE))?;
+        .merge(config::File::with_name(&(config_path.to_string_lossy())))?;
 
     // initialize logging
     logger::init_log(settings.get_str("log_config").ok())?;
