@@ -7,12 +7,12 @@ IMAGEPLATFORM		?= linux/arm/v7
 TARGETPLATFORM 		?= armv7-unknown-linux-gnueabihf
 BUILDERNAME			?= rpi-rover-builder-$(BUILDID)
 
-CONTAINERS 			= rproxy wifiap servoblaster rover-firmware
-PREBUILD_TARGETS	= prebuild-servoblaster prebuild-rover-firmware
+CONTAINERS 			= rproxy wifiap servoblaster rover-api-net rover-api-http
+PREBUILD_TARGETS	= prebuild-servoblaster prebuild-rover-api-net prebuild-rover-api-http
 BUILD_TARGETS		= $(CONTAINERS:%=build-%)
 PUBLISH_TARGETS		= $(CONTAINERS:%=publish-%)
 CLEAN_TARGETS		= $(CONTAINERS:%=clean-%)
-CLEAN_EXTRA_TARGETS = clean-servoblaster-extra clean-rover-firmware-extra
+CLEAN_EXTRA_TARGETS = clean-servoblaster-extra clean-rover-api-net-extra clean-rover-api-http-extra
 
 build: $(BUILD_TARGETS) post-build
 
@@ -41,10 +41,17 @@ servoblaster/src:
 
 prebuild-servoblaster: servoblaster/src
 
-rover-firmware/target:
-	cp -r ../rover-firmware/target rover-firmware/target
+rover-api-net/build:
+	mkdir -p rover-api-net/build
+	cp -v ../rover-firmware/target/$(TARGETPLATFORM)/release/api-net rover-api-net/build
 
-prebuild-rover-firmware: rover-http-api
+prebuild-rover-api-net: rover-api-net/build
+
+rover-api-http/build:
+	mkdir -p rover-api-http/build
+	cp -v ../rover-firmware/target/$(TARGETPLATFORM)/release/api-http rover-api-http/build
+
+prebuild-rover-api-http: rover-api-http/build
 
 $(BUILD_TARGETS): pre-build $(PREBUILD_TARGETS)
 	docker buildx build $(@:build-%=%) \
@@ -62,8 +69,11 @@ $(PUBLISH_TARGETS): pre-publish
 clean-servoblaster-extra:
 	rm -rf servoblaster/src
 
-clean-rover-firmware-extra:
-	rm -rf rover-firmware/target
+clean-rover-api-http-extra:
+	rm -rf rover-api-http/build
+
+clean-rover-api-net-extra:
+	rm -rf rover-api-net/build
 
 $(CLEAN_TARGETS): $(CLEAN_EXTRA_TARGETS) post-build
 	docker images --filter="reference=$(@:clean-%=%):*" --format="{{.ID}}" | sort -u | xargs -r docker rmi --force
