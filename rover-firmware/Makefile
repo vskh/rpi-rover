@@ -1,7 +1,7 @@
 # Makefile for Rust components of RPI-Rover project.
 
 TARGETPLATFORM 		?= armv7-unknown-linux-gnueabihf
-BUILDPROFILE 		?= --release
+BUILDPROFILE 		?= --debug
 
 export PATH 		:= $(HOME)/.cargo/bin:$(PATH)
 
