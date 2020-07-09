@@ -1,10 +1,8 @@
-FROM vskhimages/docker-raspberry-pi-runner:latest
+FROM vskhimages/docker-raspberry-pi-runner-debug:latest
 
 ARG TARGETPLATFORM=arm-unknown-linux-gnueabihf
 
 COPY ./app /app
-
-RUN apt install -y gdb
 
 EXPOSE 5757/tcp
 WORKDIR /app
