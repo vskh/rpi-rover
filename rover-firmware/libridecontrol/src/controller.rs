@@ -87,7 +87,7 @@ impl<T> RideController<T> where T: AsyncMover + AsyncLooker + AsyncSensor {
 
         write!(
             out,
-            "{}Distance to obstacle: {:.3} m",
+            "{}Distance to obstacle: {:3.3} m",
             termion::cursor::Goto(sx / 2 - 14, sy / 2 + 2),
             distance / 1000.0
         )?;
