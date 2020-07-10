@@ -7,16 +7,16 @@ use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::{IntoRawMode, RawTerminal};
 
-use libdriver::api::{Looker, Mover, Sensor};
+use libdriver::api::{AsyncLooker, AsyncMover, AsyncSensor};
 
 use crate::Result;
 
-pub struct RideController<T> where T: Mover + Looker + Sensor {
+pub struct RideController<T> where T: AsyncMover + AsyncLooker + AsyncSensor {
     output: RawTerminal<Stdout>,
     rover: T,
 }
 
-impl<T> RideController<T> where T: Mover + Looker + Sensor {
+impl<T> RideController<T> where T: AsyncMover + AsyncLooker + AsyncSensor {
     pub fn new(rover: T) -> Result<RideController<T>> {
         Ok(RideController {
             output: stdout().into_raw_mode()?,
@@ -103,7 +103,7 @@ impl<T> RideController<T> where T: Mover + Looker + Sensor {
         Ok(())
     }
 
-    pub fn run(&mut self) -> Result<()> {
+    pub async fn run(&mut self) -> Result<()> {
         let out = &mut self.output;
 
         Self::init_screen(out)?;
@@ -112,7 +112,7 @@ impl<T> RideController<T> where T: Mover + Looker + Sensor {
         let mut pan: i16 = 0;
         let mut tilt: i16 = 0;
 
-        self.rover.look_at(pan, tilt)?;
+        self.rover.look_at(pan, tilt).await?;
 
         Self::print_direction(out, '_')?;
         Self::print_run_params(out, speed, pan, tilt)?;
@@ -131,51 +131,51 @@ impl<T> RideController<T> where T: Mover + Looker + Sensor {
                     speed = speed.saturating_sub(1);
                 }
                 Some(Ok(Key::Left)) => {
-                    self.rover.spin_left(speed)?;
+                    self.rover.spin_left(speed).await?;
                     Self::print_direction(out, '←')?;
                 }
                 Some(Ok(Key::Right)) => {
-                    self.rover.spin_right(speed)?;
+                    self.rover.spin_right(speed).await?;
                     Self::print_direction(out, '→')?;
                 }
                 Some(Ok(Key::Up)) => {
-                    self.rover.move_forward(speed)?;
+                    self.rover.move_forward(speed).await?;
                     Self::print_direction(out, '↑')?;
                 }
                 Some(Ok(Key::Down)) => {
-                    self.rover.move_backward(speed)?;
+                    self.rover.move_backward(speed).await?;
                     Self::print_direction(out, '↓')?;
                 }
                 Some(Ok(Key::Char(' '))) => {
-                    self.rover.stop()?;
+                    self.rover.stop().await?;
                     Self::print_direction(out, '_')?;
                 }
                 Some(Ok(Key::Char('w'))) => {
                     tilt = tilt.saturating_add(1);
-                    self.rover.look_at(pan, tilt)?;
+                    self.rover.look_at(pan, tilt).await?;
                 }
                 Some(Ok(Key::Char('s'))) => {
                     tilt = tilt.saturating_sub(1);
-                    self.rover.look_at(pan, tilt)?;
+                    self.rover.look_at(pan, tilt).await?;
                 }
                 Some(Ok(Key::Char('a'))) => {
                     pan = pan.saturating_add(1);
-                    self.rover.look_at(pan, tilt)?;
+                    self.rover.look_at(pan, tilt).await?;
                 }
                 Some(Ok(Key::Char('d'))) => {
                     pan = pan.saturating_sub(1);
-                    self.rover.look_at(pan, tilt)?;
+                    self.rover.look_at(pan, tilt).await?;
                 }
                 _ => {
-                    let obstacles = self.rover.get_obstacles()?;
-                    let lines = self.rover.get_lines()?;
+                    let obstacles = self.rover.get_obstacles().await?;
+                    let lines = self.rover.get_lines().await?;
                     Self::print_sensors(
                         out,
                         obstacles[0],
                         obstacles[1],
                         lines[0],
                         lines[1],
-                        self.rover.scan_distance()?,
+                        self.rover.scan_distance().await?,
                     )?;
                     thread::sleep(Duration::from_millis(100));
                 }
@@ -186,13 +186,13 @@ impl<T> RideController<T> where T: Mover + Looker + Sensor {
             out.flush()?;
         }
 
-        self.rover.stop()?;
+        self.rover.stop().await?;
 
         Ok(())
     }
 }
 
-impl<T> Drop for RideController<T> where T: Mover + Looker + Sensor {
+impl<T> Drop for RideController<T> where T: AsyncMover + AsyncLooker + AsyncSensor {
     fn drop(&mut self) {
         write!(self.output, "{}", termion::cursor::Show).unwrap();
     }
