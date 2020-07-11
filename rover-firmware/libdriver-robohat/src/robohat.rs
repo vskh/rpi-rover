@@ -59,7 +59,6 @@ pub struct RobohatRover {
 
 impl RobohatRover {
     pub fn new() -> Result<RobohatRover> {
-
         let gpio = Arc::new(Mutex::new(Gpio::new()?));
         {
             let mut g = gpio.lock().unwrap();
@@ -93,32 +92,16 @@ impl RobohatRover {
         let duty_cycle = speed as f32 / 255.0;
 
         if speed == 0 {
-            motor
-                .0
-                .set_duty_cycle(0.0)?;
-            motor
-                .1
-                .set_duty_cycle(0.0)?;
+            motor.0.set_duty_cycle(0.0)?;
+            motor.1.set_duty_cycle(0.0)?;
         } else if forward {
-            motor
-                .0
-                .set_duty_cycle(duty_cycle)?;
-            motor
-                .0
-                .set_frequency(frequency)?;
-            motor
-                .1
-                .set_duty_cycle(0.0)?;
+            motor.0.set_duty_cycle(duty_cycle)?;
+            motor.0.set_frequency(frequency)?;
+            motor.1.set_duty_cycle(0.0)?;
         } else {
-            motor
-                .0
-                .set_duty_cycle(0.0)?;
-            motor
-                .1
-                .set_duty_cycle(duty_cycle)?;
-            motor
-                .1
-                .set_frequency(frequency)?;
+            motor.0.set_duty_cycle(0.0)?;
+            motor.1.set_duty_cycle(duty_cycle)?;
+            motor.1.set_frequency(frequency)?;
         }
 
         Ok(())
@@ -132,7 +115,7 @@ impl RobohatRover {
                          e1_pw: i16,
                          e2_pw: i16,
                          mid_pw: i16|
-                         -> i16 {
+         -> i16 {
             let deg_lo = e1_deg.min(e2_deg);
             let deg_hi = e1_deg.max(e2_deg);
             let deg_span = deg_hi - deg_lo;
@@ -179,7 +162,7 @@ impl RobohatRover {
 
 impl api::Mover for RobohatRover {
     type Error = Error;
-    
+
     fn stop(&mut self) -> Result<()> {
         RobohatRover::set_motor_speed(&mut self.left_motor, 0, false)?;
         RobohatRover::set_motor_speed(&mut self.right_motor, 0, false)?;
@@ -208,6 +191,10 @@ impl api::Mover for RobohatRover {
         RobohatRover::set_motor_speed(&mut self.left_motor, speed, false)?;
         RobohatRover::set_motor_speed(&mut self.right_motor, speed, true)?;
         Ok(())
+    }
+
+    fn reset(&mut self) -> Result<()> {
+        self.stop()
     }
 }
 
@@ -265,22 +252,17 @@ impl api::Sensor for RobohatRover {
         let timeout = Duration::from_millis(100);
         let mut timeout_guard = SystemTime::now();
         let mut pulse_start = timeout_guard.clone();
-        while gpio.read(GPIO_SONAR)? == Level::Low
-            && timeout_guard.elapsed()? < timeout
-        {
+        while gpio.read(GPIO_SONAR)? == Level::Low && timeout_guard.elapsed()? < timeout {
             pulse_start = SystemTime::now();
         }
 
         timeout_guard = SystemTime::now();
         let mut pulse_end = timeout_guard.clone();
-        while gpio.read(GPIO_SONAR)? == Level::High
-            && timeout_guard.elapsed()? < timeout
-        {
+        while gpio.read(GPIO_SONAR)? == Level::High && timeout_guard.elapsed()? < timeout {
             pulse_end = SystemTime::now();
         }
 
-        let pulse_width = pulse_end
-            .duration_since(pulse_start)?;
+        let pulse_width = pulse_end.duration_since(pulse_start)?;
 
         let pulse_width_f32 =
             pulse_width.as_secs() as f32 + pulse_width.subsec_nanos() as f32 / 1000000000.0;
@@ -292,3 +274,4 @@ impl api::Sensor for RobohatRover {
 }
 
 impl util::splittable::SplittableRover for RobohatRover {}
+

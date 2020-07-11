@@ -1,5 +1,5 @@
 pub mod splittable;
-pub mod asyncwrap;
+pub mod a_sync;
 
 // RaspberryPi model B+ physical pins to BCM map
 #[allow(dead_code)]

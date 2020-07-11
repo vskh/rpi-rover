@@ -66,6 +66,7 @@ impl<'a, T> Sensor for SensorPart<'a, T> where T: Sensor {
 }
 
 pub trait SplittableRover where Self: Sized + Mover + Looker + Sensor {
+
     fn split(&mut self) -> (MoverPart<Self>, LookerPart<Self>, SensorPart<Self>) {
         let l = Arc::new(Mutex::new(self));
 

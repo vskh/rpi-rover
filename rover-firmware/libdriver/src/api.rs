@@ -10,12 +10,20 @@ pub trait Mover {
     fn move_backward(&mut self, speed: u8) -> Result<(), Self::Error>;
     fn spin_right(&mut self, speed: u8) -> Result<(), Self::Error>;
     fn spin_left(&mut self, speed: u8) -> Result<(), Self::Error>;
+
+    fn reset(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
 }
 
 pub trait Looker {
     type Error: RoverError;
 
     fn look_at(&mut self, h: i16, v: i16) -> Result<(), Self::Error>;
+
+    fn reset(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
 }
 
 pub trait Sensor {
@@ -24,6 +32,10 @@ pub trait Sensor {
     fn get_obstacles(&self) -> Result<Vec<bool>, Self::Error>;
     fn get_lines(&self) -> Result<Vec<bool>, Self::Error>;
     fn scan_distance(&mut self) -> Result<f32, Self::Error>;
+
+    fn reset(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -35,6 +47,10 @@ pub trait AsyncMover {
     async fn move_backward(&mut self, speed: u8) -> Result<(), Self::Error>;
     async fn spin_right(&mut self, speed: u8) -> Result<(), Self::Error>;
     async fn spin_left(&mut self, speed: u8) -> Result<(), Self::Error>;
+
+    async fn reset(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -42,6 +58,10 @@ pub trait AsyncLooker {
     type Error: RoverError;
 
     async fn look_at(&mut self, h: i16, v: i16) -> Result<(), Self::Error>;
+
+    async fn reset(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -51,4 +71,8 @@ pub trait AsyncSensor {
     async fn get_obstacles(&self) -> Result<Vec<bool>, Self::Error>;
     async fn get_lines(&self) -> Result<Vec<bool>, Self::Error>;
     async fn scan_distance(&mut self) -> Result<f32, Self::Error>;
+
+    async fn reset(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
 }

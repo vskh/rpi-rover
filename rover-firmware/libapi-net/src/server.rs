@@ -4,13 +4,13 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_serde_cbor::Codec;
 use tokio_util::codec::Decoder;
 
-use libdriver::api::{Looker, Mover, Sensor};
+use libdriver::api::{AsyncLooker, AsyncMover, AsyncSensor};
 
 use crate::contract::data::{MoveType, ProtocolMessage, StatusResponse, SenseRequest, SenseResponse};
-use crate::Result;
+use crate::{Result, Error};
 
 pub struct Server<TMover, TLooker, TSensor>
-    where TMover: Mover, TLooker: Looker, TSensor: Sensor {
+    where TMover: AsyncMover + Send, TLooker: AsyncLooker + Send, TSensor: AsyncSensor + Send {
     listener: TcpListener,
     mover: Option<TMover>,
     looker: Option<TLooker>,
@@ -18,7 +18,7 @@ pub struct Server<TMover, TLooker, TSensor>
 }
 
 impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
-    where TMover: Mover, TLooker: Looker, TSensor: Sensor {
+    where TMover: AsyncMover + Send, TLooker: AsyncLooker + Send, TSensor: AsyncSensor + Send {
     pub async fn new(listen_address: &str) -> Result<Server<TMover, TLooker, TSensor>> {
         info!("Launching api-net server on {}.", listen_address);
 
@@ -78,6 +78,30 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
         )
     }
 
+    async fn reset(&mut self) -> Result<()> {
+        fn to_server_err<T: std::error::Error>(e: T) -> Error { Error::Server(e.to_string()) };
+
+        if let Some(ref mut mover) = self.mover {
+            mover.reset()
+                .await
+                .map_err(to_server_err)?;
+        }
+
+        if let Some(ref mut looker) = self.looker {
+            looker.reset()
+                .await
+                .map_err(to_server_err)?;
+        }
+
+        if let Some(ref mut sensor) = self.sensor {
+            sensor.reset()
+                .await
+                .map_err(to_server_err)?;
+        }
+
+        Ok(())
+    }
+
     async fn handle_connection(&mut self, socket: TcpStream) -> Result<()> {
         let peer_address = socket
             .peer_addr()
@@ -86,8 +110,11 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
         debug!("[{}] New connection received.", peer_address);
 
         let codec: Codec<ProtocolMessage, ProtocolMessage> = Codec::new();
-
         let mut channel = codec.framed(socket);
+
+        trace!("Resetting rover controls.");
+
+        self.reset().await?;
 
         while let Some(response) = channel.next().await {
             match response {
@@ -98,10 +125,10 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
 
                             if let Some(ref mut mover) = self.mover {
                                 let opresult = match r.move_type {
-                                    MoveType::Forward => mover.move_forward(r.speed),
-                                    MoveType::Backward => mover.move_backward(r.speed),
-                                    MoveType::SpinCW => mover.spin_right(r.speed),
-                                    MoveType::SpinCCW => mover.spin_left(r.speed)
+                                    MoveType::Forward => mover.move_forward(r.speed).await,
+                                    MoveType::Backward => mover.move_backward(r.speed).await,
+                                    MoveType::SpinCW => mover.spin_right(r.speed).await,
+                                    MoveType::SpinCCW => mover.spin_left(r.speed).await
                                 };
 
                                 channel
@@ -120,7 +147,8 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
 
                             if let Some(ref mut looker) = self.looker {
                                 let opresult = looker
-                                    .look_at(r.x, r.y);
+                                    .look_at(r.x, r.y)
+                                    .await;
 
                                 channel
                                     .send(Self::map_result_to_status_response(opresult))
@@ -139,7 +167,7 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
                             if let Some(ref mut sensor) = self.sensor {
                                 match r {
                                     SenseRequest::Distance => {
-                                        let opresult = match sensor.scan_distance() {
+                                        let opresult = match sensor.scan_distance().await {
                                             Ok(distance) => SenseResponse::Distance(distance),
                                             Err(e) => SenseResponse::Error(e.to_string())
                                         };
@@ -149,7 +177,7 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
                                             .await?;
                                     },
                                     SenseRequest::Line => {
-                                        let opresult = match sensor.get_lines() {
+                                        let opresult = match sensor.get_lines().await {
                                             Ok(line_states) => SenseResponse::Line(line_states),
                                             Err(e) => SenseResponse::Error(e.to_string())
                                         };
@@ -159,7 +187,7 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
                                             .await?;
                                     },
                                     SenseRequest::Obstacle => {
-                                        let opresult = match sensor.get_obstacles() {
+                                        let opresult = match sensor.get_obstacles().await {
                                             Ok(obstacle_states) => SenseResponse::Obstacle(obstacle_states),
                                             Err(e) => SenseResponse::Error(e.to_string())
                                         };
@@ -189,6 +217,8 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
                 }
             }
         }
+
+        self.reset().await?;
 
         debug!("[{}] Connection terminated.", peer_address);
 

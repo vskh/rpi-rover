@@ -4,24 +4,26 @@ use tokio::task::spawn_blocking;
 use crate::api::{AsyncMover, Mover, AsyncLooker, Looker, AsyncSensor, Sensor};
 use std::sync::{Arc, Mutex};
 
-pub struct AsyncWrap<T> {
-    wrapped: Arc<Mutex<T>>
+impl<T> From<T> for AsyncRover<T> where T: Sized + Mover + Looker + Sensor {
+    fn from(sync: T) -> Self {
+        AsyncRover(Arc::new(Mutex::new(sync)))
+    }
 }
 
-impl<T> AsyncWrap<T> {
-    pub fn new(wrapped: T) -> AsyncWrap<T> {
-        AsyncWrap {
-            wrapped: Arc::new(Mutex::new(wrapped))
-        }
+pub struct AsyncRover<T>(Arc<Mutex<T>>);
+
+impl<T> Clone for AsyncRover<T> {
+    fn clone(&self) -> Self {
+        AsyncRover(Arc::clone(&self.0))
     }
 }
 
 #[async_trait]
-impl<T: 'static> AsyncMover for AsyncWrap<T> where T: Mover + Send {
+impl<T: 'static> AsyncMover for AsyncRover<T> where T: Mover + Send {
     type Error = T::Error;
 
     async fn stop(&mut self) -> Result<(), Self::Error> {
-        let mover_ref = Arc::clone(&self.wrapped);
+        let mover_ref = Arc::clone(&self.0);
 
         spawn_blocking(move || { mover_ref.lock().unwrap().stop() })
             .await
@@ -29,7 +31,7 @@ impl<T: 'static> AsyncMover for AsyncWrap<T> where T: Mover + Send {
     }
 
     async fn move_forward(&mut self, speed: u8) -> Result<(), Self::Error> {
-        let mover_ref = Arc::clone(&self.wrapped);
+        let mover_ref = Arc::clone(&self.0);
 
         spawn_blocking(move || { mover_ref.lock().unwrap().move_forward(speed) })
             .await
@@ -37,7 +39,7 @@ impl<T: 'static> AsyncMover for AsyncWrap<T> where T: Mover + Send {
     }
 
     async fn move_backward(&mut self, speed: u8) -> Result<(), Self::Error> {
-        let mover_ref = Arc::clone(&self.wrapped);
+        let mover_ref = Arc::clone(&self.0);
 
         spawn_blocking(move || { mover_ref.lock().unwrap().move_backward(speed) })
             .await
@@ -45,7 +47,7 @@ impl<T: 'static> AsyncMover for AsyncWrap<T> where T: Mover + Send {
     }
 
     async fn spin_right(&mut self, speed: u8) -> Result<(), Self::Error> {
-        let mover_ref = Arc::clone(&self.wrapped);
+        let mover_ref = Arc::clone(&self.0);
 
         spawn_blocking(move || { mover_ref.lock().unwrap().spin_right(speed) })
             .await
@@ -53,7 +55,7 @@ impl<T: 'static> AsyncMover for AsyncWrap<T> where T: Mover + Send {
     }
 
     async fn spin_left(&mut self, speed: u8) -> Result<(), Self::Error> {
-        let mover_ref = Arc::clone(&self.wrapped);
+        let mover_ref = Arc::clone(&self.0);
 
         spawn_blocking(move || { mover_ref.lock().unwrap().spin_left(speed) })
             .await
@@ -62,11 +64,11 @@ impl<T: 'static> AsyncMover for AsyncWrap<T> where T: Mover + Send {
 }
 
 #[async_trait]
-impl<T: 'static> AsyncLooker for AsyncWrap<T> where T: Looker + Send {
+impl<T: 'static> AsyncLooker for AsyncRover<T> where T: Looker + Send {
     type Error = T::Error;
 
     async fn look_at(&mut self, h: i16, v: i16) -> Result<(), Self::Error> {
-        let looker_ref = Arc::clone(&self.wrapped);
+        let looker_ref = Arc::clone(&self.0);
 
         spawn_blocking(move || { looker_ref.lock().unwrap().look_at(h, v) })
             .await
@@ -75,11 +77,11 @@ impl<T: 'static> AsyncLooker for AsyncWrap<T> where T: Looker + Send {
 }
 
 #[async_trait]
-impl<T:'static> AsyncSensor for AsyncWrap<T> where T: Sensor + Send {
+impl<T: 'static> AsyncSensor for AsyncRover<T> where T: Sensor + Send {
     type Error = T::Error;
 
     async fn get_obstacles(&self) -> Result<Vec<bool>, Self::Error> {
-        let sensor_ref = Arc::clone(&self.wrapped);
+        let sensor_ref = Arc::clone(&self.0);
 
         spawn_blocking(move || { sensor_ref.lock().unwrap().get_obstacles() })
             .await
@@ -87,7 +89,7 @@ impl<T:'static> AsyncSensor for AsyncWrap<T> where T: Sensor + Send {
     }
 
     async fn get_lines(&self) -> Result<Vec<bool>, Self::Error> {
-        let sensor_ref = Arc::clone(&self.wrapped);
+        let sensor_ref = Arc::clone(&self.0);
 
         spawn_blocking(move || { sensor_ref.lock().unwrap().get_lines() })
             .await
@@ -95,7 +97,7 @@ impl<T:'static> AsyncSensor for AsyncWrap<T> where T: Sensor + Send {
     }
 
     async fn scan_distance(&mut self) -> Result<f32, Self::Error> {
-        let sensor_ref = Arc::clone(&self.wrapped);
+        let sensor_ref = Arc::clone(&self.0);
 
         spawn_blocking(move || { sensor_ref.lock().unwrap().scan_distance() })
             .await

@@ -1,6 +1,6 @@
 use clap::{clap_app, crate_authors, crate_description, crate_version};
 
-use libdriver::util::asyncwrap::AsyncWrap;
+use libdriver::util::a_sync::AsyncRover;
 use libapi_net::client::Client;
 use libdriver_robohat::RobohatRover;
 use libridecontrol::controller::RideController;
@@ -18,7 +18,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ).get_matches();
 
     if opts.is_present("local") {
-        RideController::new(AsyncWrap::new(RobohatRover::new()?))?.run().await?
+        let async_rover: AsyncRover<RobohatRover> = RobohatRover::new()?.into();
+        RideController::new(async_rover)?.run().await?
     } else {
         let rover_address = opts.value_of("address").unwrap();
 
