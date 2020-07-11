@@ -4,6 +4,6 @@ appenders:
     kind: console
 
 root:
-  level: trace
+  level: debug
   appenders:
     - console
