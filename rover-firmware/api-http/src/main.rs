@@ -1,9 +1,21 @@
-use actix_web::{server, App};
+use actix_web::{App, server};
+use log::info;
+
+use libutil::app::bootstrap;
 
 mod controllers;
 
-fn main() {
-    println!("Starting API server on port 80.");
+const CONFIG_FILE: &str = "Config.toml";
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Rover api-http is starting up.");
+
+    let settings = bootstrap(CONFIG_FILE)?;
+
+    let listen_addr = settings.get_str("listen")?;
+
+    info!("Starting api-http on {}...", listen_addr);
+
     server::new(|| {
         App::new()
             .resource("/move/forward", |r| r.f(controllers::move_forward))
@@ -18,4 +30,6 @@ fn main() {
     .bind("0.0.0.0:80")
     .unwrap()
     .run();
+
+    Ok(())
 }
