@@ -2,7 +2,7 @@ use either::Either;
 use futures::lock::Mutex;
 use futures::{FutureExt, SinkExt, StreamExt};
 use log::{error, trace};
-use tokio::net::TcpStream;
+use tokio::net::{TcpStream, ToSocketAddrs};
 use tokio_serde_cbor::Codec;
 use tokio_util::codec::{Decoder, Framed};
 
@@ -22,22 +22,23 @@ pub struct Client {
 }
 
 impl Client {
-    pub async fn new(driver_address: &str) -> Result<Client> {
+    pub async fn new<T: ToSocketAddrs>(net_api_address: T) -> Result<Client> {
         Ok(Client {
-            channel: Mutex::new(Self::connect(driver_address).await?),
+            channel: Mutex::new(Self::connect(net_api_address).await?),
         })
     }
 
-    pub async fn reconnect(&mut self, driver_address: &str) -> Result<()> {
-        self.channel = Mutex::new(Self::connect(driver_address).await?);
+    pub async fn reconnect<T: ToSocketAddrs>(&mut self, net_api_address: T) -> Result<()> {
+        self.channel = Mutex::new(Self::connect(net_api_address).await?);
 
         Ok(())
     }
 
-    async fn connect(driver_address: &str) -> Result<ChannelType> {
-        let stream = TcpStream::connect(driver_address).await?;
+    async fn connect<T: ToSocketAddrs>(net_api_address: T) -> Result<ChannelType> {
+        let stream = TcpStream::connect(net_api_address).await?;
+        let remote_addr = stream.peer_addr().unwrap();
 
-        trace!("[{}] Connected.", driver_address);
+        trace!("[{}] Connected.", remote_addr);
 
         let codec: Codec<ProtocolMessage, ProtocolMessage> = Codec::new();
 

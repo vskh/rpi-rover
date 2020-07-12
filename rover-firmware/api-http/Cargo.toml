@@ -5,9 +5,12 @@ authors = ["Vadym S. Khondar <vadym@khondar.name>"]
 edition = "2018"
 
 [dependencies]
+futures = "0.3.1"
 config = "0.9"
 log = "0.4"
-serde = "1.0.114"
 actix-web = "2.0"
 actix-rt = "1.1.1"
+serde = { version = "1.0.114", features = ["derive"] }
+libapi-net = { path = "../libapi-net" }
+libdriver = { path = "../libdriver" }
 libutil = { path = "../libutil" }

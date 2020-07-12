@@ -1,2 +1,3 @@
-listen = "0.0.0.0:8080"
+listen_address = "0.0.0.0:8080"
+rover_address = "rover:5757"
 log_config = "log4rs.yml"
