@@ -11,12 +11,18 @@ use libdriver::api::{AsyncLooker, AsyncMover, AsyncSensor};
 
 use crate::Result;
 
-pub struct RideController<T> where T: AsyncMover + AsyncLooker + AsyncSensor {
+pub struct RideController<T>
+where
+    T: AsyncMover + AsyncLooker + AsyncSensor,
+{
     output: RawTerminal<Stdout>,
     rover: T,
 }
 
-impl<T> RideController<T> where T: AsyncMover + AsyncLooker + AsyncSensor {
+impl<T> RideController<T>
+where
+    T: AsyncMover + AsyncLooker + AsyncSensor,
+{
     pub fn new(rover: T) -> Result<RideController<T>> {
         Ok(RideController {
             output: stdout().into_raw_mode()?,
@@ -192,7 +198,10 @@ impl<T> RideController<T> where T: AsyncMover + AsyncLooker + AsyncSensor {
     }
 }
 
-impl<T> Drop for RideController<T> where T: AsyncMover + AsyncLooker + AsyncSensor {
+impl<T> Drop for RideController<T>
+where
+    T: AsyncMover + AsyncLooker + AsyncSensor,
+{
     fn drop(&mut self) {
         write!(self.output, "{}", termion::cursor::Show).unwrap();
     }

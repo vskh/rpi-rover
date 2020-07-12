@@ -2,8 +2,8 @@ use thiserror::Error as LibError;
 
 use crate::contract::data::ProtocolMessage;
 
-pub mod contract;
 pub mod client;
+pub mod contract;
 pub mod server;
 
 #[derive(Debug, LibError)]

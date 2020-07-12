@@ -7,16 +7,20 @@ use crate::logger::init_log;
 use crate::sys::normalize_path;
 
 pub fn bootstrap(config_path: &str) -> Result<Config, Box<dyn std::error::Error>> {
-    let self_path = std::env::current_exe()
-        .map_err(|_| { "Could not get current executable path." })?;
-    let self_name = self_path.file_name()
-        .map(|s| { s.to_string_lossy() })
+    let self_path =
+        std::env::current_exe().map_err(|_| "Could not get current executable path.")?;
+    let self_name = self_path
+        .file_name()
+        .map(|s| s.to_string_lossy())
         .unwrap_or(Cow::from("<unknown>"));
 
-    debug!("Bootstrapping {} with configuration from {}.", self_name, config_path);
+    debug!(
+        "Bootstrapping {} with configuration from {}.",
+        self_name, config_path
+    );
 
-    let current_dir = std::env::current_dir()
-        .map_err(|_| { "Could not get current working directory." })?;
+    let current_dir =
+        std::env::current_dir().map_err(|_| "Could not get current working directory.")?;
 
     // load settings
     let config_path = normalize_path(config_path, &current_dir);

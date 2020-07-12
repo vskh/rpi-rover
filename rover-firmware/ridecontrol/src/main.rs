@@ -1,7 +1,7 @@
 use clap::{clap_app, crate_authors, crate_description, crate_version};
 
-use libdriver::util::a_sync::AsyncRover;
 use libapi_net::client::Client;
+use libdriver::util::a_sync::AsyncRover;
 use libdriver_robohat::RobohatRover;
 use libridecontrol::controller::RideController;
 
@@ -23,7 +23,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         let rover_address = opts.value_of("address").unwrap();
 
-        RideController::new(Client::new(rover_address).await?)?.run().await?
+        RideController::new(Client::new(rover_address).await?)?
+            .run()
+            .await?
     }
 
     Ok(())

@@ -31,9 +31,13 @@ impl From<GPIOError> for Error {
     fn from(error: GPIOError) -> Self {
         match error {
             GPIOError::Io(e) => Error::IO(e),
-            GPIOError::InvalidPin(_) | GPIOError::UnknownSoC | GPIOError::UnknownMode(_) => Error::Incompatible(error),
+            GPIOError::InvalidPin(_) | GPIOError::UnknownSoC | GPIOError::UnknownMode(_) => {
+                Error::Incompatible(error)
+            }
             GPIOError::NotInitialized | GPIOError::InstanceExists => Error::GPIO(error),
-            GPIOError::PermissionDenied | GPIOError::ThreadPanic => Error::System(GenError::from(error))
+            GPIOError::PermissionDenied | GPIOError::ThreadPanic => {
+                Error::System(GenError::from(error))
+            }
         }
     }
 }

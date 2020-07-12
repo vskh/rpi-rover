@@ -274,4 +274,3 @@ impl api::Sensor for RobohatRover {
 }
 
 impl util::splittable::SplittableRover for RobohatRover {}
-

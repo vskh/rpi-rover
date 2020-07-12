@@ -1,6 +1,6 @@
 use either::Either;
-use futures::{SinkExt, StreamExt, FutureExt};
 use futures::lock::Mutex;
+use futures::{FutureExt, SinkExt, StreamExt};
 use log::{error, trace};
 use tokio::net::TcpStream;
 use tokio_serde_cbor::Codec;
@@ -9,27 +9,22 @@ use tokio_util::codec::{Decoder, Framed};
 use async_trait::async_trait;
 use libdriver::api::{AsyncLooker, AsyncMover, AsyncSensor};
 
-use crate::{Error, Result};
 use crate::contract::data::{
-    LookRequest,
-    MoveRequest,
-    MoveType,
-    ProtocolMessage,
-    SenseRequest,
-    SenseResponse,
-    StatusResponse
+    LookRequest, MoveRequest, MoveType, ProtocolMessage, SenseRequest, SenseResponse,
+    StatusResponse,
 };
+use crate::{Error, Result};
 
 type ChannelType = Framed<TcpStream, Codec<ProtocolMessage, ProtocolMessage>>;
 
 pub struct Client {
-    channel: Mutex<ChannelType>
+    channel: Mutex<ChannelType>,
 }
 
 impl Client {
     pub async fn new(driver_address: &str) -> Result<Client> {
         Ok(Client {
-            channel: Mutex::new(Self::connect(driver_address).await?)
+            channel: Mutex::new(Self::connect(driver_address).await?),
         })
     }
 
@@ -50,7 +45,9 @@ impl Client {
     }
 
     async fn exchange<T, F>(&self, request: ProtocolMessage, response_processor: F) -> Result<T>
-        where F: Fn(ProtocolMessage) -> Either<Result<T>, ProtocolMessage> {
+    where
+        F: Fn(ProtocolMessage) -> Either<Result<T>, ProtocolMessage>,
+    {
         trace!("Request to api-net: {:#?}", request);
 
         self.channel
@@ -58,7 +55,8 @@ impl Client {
             .then(|mut guard| async move { guard.send(request).await })
             .await?;
 
-        let r = self.channel
+        let r = self
+            .channel
             .lock()
             .then(|mut guard| async move { guard.next().await })
             .await;
@@ -70,7 +68,7 @@ impl Client {
 
                     match response_processor(message) {
                         Either::Left(value) => value,
-                        Either::Right(msg) => Err(Error::Protocol(msg))
+                        Either::Right(msg) => Err(Error::Protocol(msg)),
                     }
                 }
                 Err(e) => {
@@ -89,7 +87,7 @@ impl Client {
         if let ProtocolMessage::StatusResponse(status) = message {
             Either::Left(match status {
                 StatusResponse::Success => Ok(()),
-                StatusResponse::Error(e) => Err(Error::Server(e))
+                StatusResponse::Error(e) => Err(Error::Server(e)),
             })
         } else {
             Either::Right(message)
@@ -152,10 +150,7 @@ impl AsyncLooker for Client {
     type Error = Error;
 
     async fn look_at(&mut self, h: i16, v: i16) -> Result<()> {
-        let msg = ProtocolMessage::LookRequest(LookRequest {
-            x: h,
-            y: v
-        });
+        let msg = ProtocolMessage::LookRequest(LookRequest { x: h, y: v });
 
         self.exchange(msg, Self::process_status).await
     }
@@ -173,7 +168,7 @@ impl AsyncSensor for Client {
                 match sense {
                     SenseResponse::Obstacle(obstacle_data) => Either::Left(Ok(obstacle_data)),
                     SenseResponse::Error(e) => Either::Left(Err(Error::Server(e))),
-                    _ => Either::Right(ProtocolMessage::SenseResponse(sense))
+                    _ => Either::Right(ProtocolMessage::SenseResponse(sense)),
                 }
             } else {
                 Either::Right(message)
@@ -191,7 +186,7 @@ impl AsyncSensor for Client {
                 match sense {
                     SenseResponse::Line(line_data) => Either::Left(Ok(line_data)),
                     SenseResponse::Error(e) => Either::Left(Err(Error::Server(e))),
-                    _ => Either::Right(ProtocolMessage::SenseResponse(sense))
+                    _ => Either::Right(ProtocolMessage::SenseResponse(sense)),
                 }
             } else {
                 Either::Right(message)
@@ -209,7 +204,7 @@ impl AsyncSensor for Client {
                 match sense {
                     SenseResponse::Distance(distance) => Either::Left(Ok(distance)),
                     SenseResponse::Error(e) => Either::Left(Err(Error::Server(e))),
-                    _ => Either::Right(ProtocolMessage::SenseResponse(sense))
+                    _ => Either::Right(ProtocolMessage::SenseResponse(sense)),
                 }
             } else {
                 Either::Right(message)

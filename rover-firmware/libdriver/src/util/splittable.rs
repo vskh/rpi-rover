@@ -1,10 +1,16 @@
- use std::sync::{Arc, Mutex};
+
+use std::sync::{Arc, Mutex};
 
 use crate::api::{Looker, Mover, Sensor};
 
-pub struct MoverPart<'a, T>(Arc<Mutex<&'a mut T>>) where T: Mover;
+pub struct MoverPart<'a, T>(Arc<Mutex<&'a mut T>>)
+where
+    T: Mover;
 
-impl<'a, T> Mover for MoverPart<'a, T> where T: Mover {
+impl<'a, T> Mover for MoverPart<'a, T>
+where
+    T: Mover,
+{
     type Error = T::Error;
 
     fn stop(&mut self) -> Result<(), T::Error> {
@@ -33,9 +39,14 @@ impl<'a, T> Mover for MoverPart<'a, T> where T: Mover {
     }
 }
 
-pub struct LookerPart<'a, T>(Arc<Mutex<&'a mut T>>) where T: Looker;
+pub struct LookerPart<'a, T>(Arc<Mutex<&'a mut T>>)
+where
+    T: Looker;
 
-impl<'a, T> Looker for LookerPart<'a, T> where T: Looker {
+impl<'a, T> Looker for LookerPart<'a, T>
+where
+    T: Looker,
+{
     type Error = T::Error;
 
     fn look_at(&mut self, h: i16, v: i16) -> Result<(), Self::Error> {
@@ -44,9 +55,14 @@ impl<'a, T> Looker for LookerPart<'a, T> where T: Looker {
     }
 }
 
-pub struct SensorPart<'a, T>(Arc<Mutex<&'a mut T>>) where T: Sensor;
+pub struct SensorPart<'a, T>(Arc<Mutex<&'a mut T>>)
+where
+    T: Sensor;
 
-impl<'a, T> Sensor for SensorPart<'a, T> where T: Sensor {
+impl<'a, T> Sensor for SensorPart<'a, T>
+where
+    T: Sensor,
+{
     type Error = T::Error;
 
     fn get_obstacles(&self) -> Result<Vec<bool>, Self::Error> {
@@ -65,15 +81,17 @@ impl<'a, T> Sensor for SensorPart<'a, T> where T: Sensor {
     }
 }
 
-pub trait SplittableRover where Self: Sized + Mover + Looker + Sensor {
-
+pub trait SplittableRover
+where
+    Self: Sized + Mover + Looker + Sensor,
+{
     fn split(&mut self) -> (MoverPart<Self>, LookerPart<Self>, SensorPart<Self>) {
         let l = Arc::new(Mutex::new(self));
 
         (
             MoverPart(Arc::clone(&l)),
             LookerPart(Arc::clone(&l)),
-            SensorPart(Arc::clone(&l))
+            SensorPart(Arc::clone(&l)),
         )
     }
 }

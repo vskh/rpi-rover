@@ -6,11 +6,17 @@ use tokio_util::codec::Decoder;
 
 use libdriver::api::{AsyncLooker, AsyncMover, AsyncSensor};
 
-use crate::contract::data::{MoveType, ProtocolMessage, StatusResponse, SenseRequest, SenseResponse};
-use crate::{Result, Error};
+use crate::contract::data::{
+    MoveType, ProtocolMessage, SenseRequest, SenseResponse, StatusResponse,
+};
+use crate::{Error, Result};
 
 pub struct Server<TMover, TLooker, TSensor>
-    where TMover: AsyncMover + Send, TLooker: AsyncLooker + Send, TSensor: AsyncSensor + Send {
+where
+    TMover: AsyncMover + Send,
+    TLooker: AsyncLooker + Send,
+    TSensor: AsyncSensor + Send,
+{
     listener: TcpListener,
     mover: Option<TMover>,
     looker: Option<TLooker>,
@@ -18,13 +24,16 @@ pub struct Server<TMover, TLooker, TSensor>
 }
 
 impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
-    where TMover: AsyncMover + Send, TLooker: AsyncLooker + Send, TSensor: AsyncSensor + Send {
+where
+    TMover: AsyncMover + Send,
+    TLooker: AsyncLooker + Send,
+    TSensor: AsyncSensor + Send,
+{
     pub async fn new(listen_address: &str) -> Result<Server<TMover, TLooker, TSensor>> {
         info!("Launching api-net server on {}.", listen_address);
 
         trace!("Opening TCP listener on {}.", listen_address);
-        let listener = TcpListener::bind(listen_address)
-            .await?;
+        let listener = TcpListener::bind(listen_address).await?;
         trace!("Listener opened.");
 
         Ok(Server {
@@ -55,9 +64,7 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
         trace!("Starting dispatch loop.");
 
         loop {
-            let (socket, _) = self.listener
-                .accept()
-                .await?;
+            let (socket, _) = self.listener.accept().await?;
 
             trace!("New connection accepted.");
 
@@ -69,34 +76,30 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
     }
 
     fn map_result_to_status_response<T, E>(r: std::result::Result<T, E>) -> ProtocolMessage
-        where E: std::fmt::Display {
-        ProtocolMessage::StatusResponse(
-            match r {
-                Ok(_) => StatusResponse::Success,
-                Err(e) => StatusResponse::Error(e.to_string())
-            }
-        )
+    where
+        E: std::fmt::Display,
+    {
+        ProtocolMessage::StatusResponse(match r {
+            Ok(_) => StatusResponse::Success,
+            Err(e) => StatusResponse::Error(e.to_string()),
+        })
     }
 
     async fn reset(&mut self) -> Result<()> {
-        fn to_server_err<T: std::error::Error>(e: T) -> Error { Error::Server(e.to_string()) };
+        fn to_server_err<T: std::error::Error>(e: T) -> Error {
+            Error::Server(e.to_string())
+        };
 
         if let Some(ref mut mover) = self.mover {
-            mover.reset()
-                .await
-                .map_err(to_server_err)?;
+            mover.reset().await.map_err(to_server_err)?;
         }
 
         if let Some(ref mut looker) = self.looker {
-            looker.reset()
-                .await
-                .map_err(to_server_err)?;
+            looker.reset().await.map_err(to_server_err)?;
         }
 
         if let Some(ref mut sensor) = self.sensor {
-            sensor.reset()
-                .await
-                .map_err(to_server_err)?;
+            sensor.reset().await.map_err(to_server_err)?;
         }
 
         Ok(())
@@ -128,7 +131,7 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
                                     MoveType::Forward => mover.move_forward(r.speed).await,
                                     MoveType::Backward => mover.move_backward(r.speed).await,
                                     MoveType::SpinCW => mover.spin_right(r.speed).await,
-                                    MoveType::SpinCCW => mover.spin_left(r.speed).await
+                                    MoveType::SpinCCW => mover.spin_left(r.speed).await,
                                 };
 
                                 channel
@@ -138,7 +141,9 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
                                 warn!("[{}] Requested operation is not implemented.", peer_address);
 
                                 channel
-                                    .send(ProtocolMessage::StatusResponse(StatusResponse::Error("Unsupported operation.".to_owned())))
+                                    .send(ProtocolMessage::StatusResponse(StatusResponse::Error(
+                                        "Unsupported operation.".to_owned(),
+                                    )))
                                     .await?;
                             }
                         }
@@ -146,9 +151,7 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
                             trace!("[{}] Processing look request: {:#?}", peer_address, r);
 
                             if let Some(ref mut looker) = self.looker {
-                                let opresult = looker
-                                    .look_at(r.x, r.y)
-                                    .await;
+                                let opresult = looker.look_at(r.x, r.y).await;
 
                                 channel
                                     .send(Self::map_result_to_status_response(opresult))
@@ -157,7 +160,9 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
                                 warn!("[{}] Requested operation is not implemented.", peer_address);
 
                                 channel
-                                    .send(ProtocolMessage::StatusResponse(StatusResponse::Error("Unsupported operation.".to_owned())))
+                                    .send(ProtocolMessage::StatusResponse(StatusResponse::Error(
+                                        "Unsupported operation.".to_owned(),
+                                    )))
                                     .await?
                             }
                         }
@@ -169,27 +174,29 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
                                     SenseRequest::Distance => {
                                         let opresult = match sensor.scan_distance().await {
                                             Ok(distance) => SenseResponse::Distance(distance),
-                                            Err(e) => SenseResponse::Error(e.to_string())
+                                            Err(e) => SenseResponse::Error(e.to_string()),
                                         };
 
                                         channel
                                             .send(ProtocolMessage::SenseResponse(opresult))
                                             .await?;
-                                    },
+                                    }
                                     SenseRequest::Line => {
                                         let opresult = match sensor.get_lines().await {
                                             Ok(line_states) => SenseResponse::Line(line_states),
-                                            Err(e) => SenseResponse::Error(e.to_string())
+                                            Err(e) => SenseResponse::Error(e.to_string()),
                                         };
 
                                         channel
                                             .send(ProtocolMessage::SenseResponse(opresult))
                                             .await?;
-                                    },
+                                    }
                                     SenseRequest::Obstacle => {
                                         let opresult = match sensor.get_obstacles().await {
-                                            Ok(obstacle_states) => SenseResponse::Obstacle(obstacle_states),
-                                            Err(e) => SenseResponse::Error(e.to_string())
+                                            Ok(obstacle_states) => {
+                                                SenseResponse::Obstacle(obstacle_states)
+                                            }
+                                            Err(e) => SenseResponse::Error(e.to_string()),
                                         };
 
                                         channel
@@ -201,15 +208,23 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
                                 warn!("[{}] Requested operation is not implemented.", peer_address);
 
                                 channel
-                                    .send(ProtocolMessage::SenseResponse(SenseResponse::Error("Unsupported operation.".to_owned())))
+                                    .send(ProtocolMessage::SenseResponse(SenseResponse::Error(
+                                        "Unsupported operation.".to_owned(),
+                                    )))
                                     .await?
                             }
                         }
 
-                        _ => warn!("[{}] Received unsupported request type: {:#?}", peer_address, message),
+                        _ => warn!(
+                            "[{}] Received unsupported request type: {:#?}",
+                            peer_address, message
+                        ),
                     }
 
-                    debug!("[{}] Successfully processed message: {:#?}", peer_address, message);
+                    debug!(
+                        "[{}] Successfully processed message: {:#?}",
+                        peer_address, message
+                    );
                 }
                 Err(e) => {
                     error!("[{}] Failed to receive message: {}", peer_address, e);
@@ -225,4 +240,3 @@ impl<TMover, TLooker, TSensor> Server<TMover, TLooker, TSensor>
         Ok(())
     }
 }
-
