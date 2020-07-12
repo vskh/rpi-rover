@@ -7,5 +7,7 @@ edition = "2018"
 [dependencies]
 config = "0.9"
 log = "0.4"
-actix-web = "0.7"
+serde = "1.0.114"
+actix-web = "2.0"
+actix-rt = "1.1.1"
 libutil = { path = "../libutil" }
