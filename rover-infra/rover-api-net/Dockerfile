@@ -1,4 +1,4 @@
-FROM vskhimages/docker-raspberry-pi-runner-debug:latest
+FROM vskhimages/docker-raspberry-pi-runner:latest
 
 ARG TARGETPLATFORM=arm-unknown-linux-gnueabihf
 
