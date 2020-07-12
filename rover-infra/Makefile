@@ -52,6 +52,8 @@ prebuild-rover-api-net: rover-api-net/app
 
 rover-api-http/app:
 	mkdir -p rover-api-http/app
+	cp -v ../rover-firmware/api-http/Config.toml rover-api-http/app
+	cp -v ../rover-firmware/api-http/log4rs.yml rover-api-http/app
 	cp -v ../rover-firmware/target/$(TARGETPLATFORM)/$(BUILDPROFILE)/api-http rover-api-http/app
 
 prebuild-rover-api-http: rover-api-http/app
