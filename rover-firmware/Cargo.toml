@@ -2,10 +2,11 @@
 members = [
     "api-http",
     "api-net",
-    "ridecontrol",
+    "ux-console",
+    "libux-web",
     "libdriver",
     "libdriver-robohat",
     "libapi-net",
-    "libridecontrol",
+    "libux-console",
     "libutil"
 ]

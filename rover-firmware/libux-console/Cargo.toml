@@ -1,5 +1,5 @@
 [package]
-name = "libridecontrol"
+name = "libux-console"
 version = "0.1.0"
 authors = ["Vadym S. Khondar <vadym@khondar.name>"]
 edition = "2018"

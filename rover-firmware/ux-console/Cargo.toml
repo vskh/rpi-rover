@@ -1,5 +1,5 @@
 [package]
-name = "ridecontrol"
+name = "ux-console"
 version = "0.1.0"
 authors = ["Vadym S. Khondar <vadym@khondar.name>"]
 edition = "2018"
@@ -11,4 +11,4 @@ tokio = { version = "0.2.6", features = ["dns", "macros", "rt-core", "tcp"] }
 libdriver = { path="../libdriver" }
 libdriver-robohat = { path = "../libdriver-robohat" }
 libapi-net = { path = "../libapi-net" }
-libridecontrol = { path = "../libridecontrol" }
+libux-console = { path = "../libux-console" }

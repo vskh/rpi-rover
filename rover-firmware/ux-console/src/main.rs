@@ -3,7 +3,7 @@ use clap::{clap_app, crate_authors, crate_description, crate_version};
 use libapi_net::client::Client;
 use libdriver::util::a_sync::AsyncRover;
 use libdriver_robohat::RobohatRover;
-use libridecontrol::controller::RideController;
+use libux_console::controller::RideController;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
