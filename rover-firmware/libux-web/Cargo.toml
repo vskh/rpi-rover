@@ -1,0 +1,21 @@
+[package]
+name = "libux-web"
+version = "0.1.0"
+authors = ["Vadym S. Khondar <vadym@khondar.name>"]
+edition = "2018"
+description = "Web user experience for Rover control center."
+repository = "https://github.com/vskh/rpi-rover"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+log = "0.4.11"
+yew = "0.17.2"
+wasm-bindgen = "0.2"
+wee_alloc = { version = "0.4.5", optional = true }
+cfg-if = "0.1.10"
+
+[features]
+default = ["wee_alloc"]
