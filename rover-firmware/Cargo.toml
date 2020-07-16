@@ -3,10 +3,13 @@ members = [
     "api-http",
     "api-net",
     "ux-console",
-    "libux-web",
     "libdriver",
     "libdriver-robohat",
     "libapi-net",
     "libux-console",
     "libutil"
+]
+
+exclude = [
+    "libux-web"
 ]

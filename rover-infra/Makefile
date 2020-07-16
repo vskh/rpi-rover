@@ -9,11 +9,11 @@ BUILDPROFILE 		?= release
 BUILDERNAME			?= rpi-rover-builder-$(BUILDID)
 
 CONTAINERS 			= rproxy wifiap servoblaster rover-api-net rover-api-http
-PREBUILD_TARGETS	= prebuild-servoblaster prebuild-rover-api-net prebuild-rover-api-http
+PREBUILD_TARGETS	= prebuild-rproxy prebuild-servoblaster prebuild-rover-api-net prebuild-rover-api-http
 BUILD_TARGETS		= $(CONTAINERS:%=build-%)
 PUBLISH_TARGETS		= $(CONTAINERS:%=publish-%)
 CLEAN_TARGETS		= $(CONTAINERS:%=clean-%)
-CLEAN_EXTRA_TARGETS = clean-servoblaster-extra clean-rover-api-net-extra clean-rover-api-http-extra
+CLEAN_EXTRA_TARGETS = clean-rproxy-extra clean-servoblaster-extra clean-rover-api-net-extra clean-rover-api-http-extra
 
 build: $(BUILD_TARGETS) post-build
 
@@ -36,6 +36,11 @@ pre-build:
 	- docker buildx create --name $(BUILDERNAME)
 	docker buildx inspect --bootstrap $(BUILDERNAME)
 	docker buildx use $(BUILDERNAME)
+
+rproxy/data/app:
+	cp -r ../rover-firmware/libux-web/app rproxy/data
+
+prebuild-rproxy: rproxy/data/app
 
 servoblaster/src:
 	cp -r ../3rdparty/PiBits/ServoBlaster/user servoblaster/src
@@ -70,6 +75,9 @@ post-build:
 
 $(PUBLISH_TARGETS): pre-publish
 	docker push $(REPOPREFIX)$(@:publish-%=%):$(BUILDID)
+
+clean-rproxy-extra:
+	rm -rf rproxy/data/app
 
 clean-servoblaster-extra:
 	rm -rf servoblaster/src
