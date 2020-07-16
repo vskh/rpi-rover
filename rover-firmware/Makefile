@@ -24,6 +24,7 @@ undeploy:
 clean:
 	cross clean
 	rm -rf libux-web/app/pkg
+	rm -rf libux-web/target
 
 .PHONY: build publish deploy undeploy clean
 
