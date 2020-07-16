@@ -8,12 +8,12 @@ TARGETPLATFORM 		?= armv7-unknown-linux-gnueabihf
 BUILDPROFILE 		?= release
 BUILDERNAME			?= rpi-rover-builder-$(BUILDID)
 
-CONTAINERS 			= rproxy wifiap servoblaster rover-api-net rover-api-http
-PREBUILD_TARGETS	= prebuild-rproxy prebuild-servoblaster prebuild-rover-api-net prebuild-rover-api-http
+CONTAINERS 			= frontend wifiap servoblaster rover-api-net rover-api-http
+PREBUILD_TARGETS	= prebuild-frontend prebuild-servoblaster prebuild-rover-api-net prebuild-rover-api-http
 BUILD_TARGETS		= $(CONTAINERS:%=build-%)
 PUBLISH_TARGETS		= $(CONTAINERS:%=publish-%)
 CLEAN_TARGETS		= $(CONTAINERS:%=clean-%)
-CLEAN_EXTRA_TARGETS = clean-rproxy-extra clean-servoblaster-extra clean-rover-api-net-extra clean-rover-api-http-extra
+CLEAN_EXTRA_TARGETS = clean-frontend-extra clean-servoblaster-extra clean-rover-api-net-extra clean-rover-api-http-extra
 
 build: $(BUILD_TARGETS) post-build
 
@@ -37,10 +37,10 @@ pre-build:
 	docker buildx inspect --bootstrap $(BUILDERNAME)
 	docker buildx use $(BUILDERNAME)
 
-rproxy/data/app:
-	cp -r ../rover-firmware/libux-web/app rproxy/data
+frontend/data/app:
+	cp -r ../rover-firmware/libux-web/app frontend/data
 
-prebuild-rproxy: rproxy/data/app
+prebuild-frontend: frontend
 
 servoblaster/src:
 	cp -r ../3rdparty/PiBits/ServoBlaster/user servoblaster/src
@@ -76,8 +76,8 @@ post-build:
 $(PUBLISH_TARGETS): pre-publish
 	docker push $(REPOPREFIX)$(@:publish-%=%):$(BUILDID)
 
-clean-rproxy-extra:
-	rm -rf rproxy/data/app
+clean-frontend-extra:
+	rm -rf frontend/data/app
 
 clean-servoblaster-extra:
 	rm -rf servoblaster/src
