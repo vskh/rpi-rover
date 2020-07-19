@@ -1,20 +1,21 @@
 #![recursion_limit = "256"]
 
-use cfg_if::cfg_if;
+use log::Level;
 use wasm_bindgen::prelude::*;
 use yew::start_app;
+
 use crate::app::App;
 
-cfg_if! {
-    if #[cfg(feature = "wee_alloc")] {
-        #[global_allocator]
-        static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-    }
-}
+#[cfg(feature = "wee_alloc")]
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 mod app;
+mod scene;
+mod direction_control;
 
 #[wasm_bindgen(start)]
 pub fn launch() {
+    wasm_logger::init(wasm_logger::Config::new(Level::Trace));
     start_app::<App>();
 }
