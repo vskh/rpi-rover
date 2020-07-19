@@ -160,6 +160,8 @@ impl Component for App {
                             controller_id="platform"
                             on_direction_change=self.link.callback(|dir| Msg::UpdateMoveDirection(dir))
                             size={50}
+                            x_step={10}
+                            y_step={10}
                             xinc_title="↻"
                             xdec_title="↺"
                             has_reset={true} />

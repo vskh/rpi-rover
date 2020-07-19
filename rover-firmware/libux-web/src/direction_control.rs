@@ -86,6 +86,12 @@ pub struct DirectionControlProps {
     #[prop_or_default]
     pub has_reset: bool,
 
+    #[prop_or(1)]
+    pub x_step: i32,
+
+    #[prop_or(1)]
+    pub y_step: i32,
+
     #[prop_or("↑".to_string())]
     pub yinc_title: String,
 
@@ -177,16 +183,17 @@ impl Component for DirectionControl {
 
                 match self.props.module_mode {
                     DirectionModuleMode::Immediate => {
-                        self.state.x = -1;
+                        self.state.x = - self.props.x_step;
                     },
-                    DirectionModuleMode::Mixed =>
+                    DirectionModuleMode::Mixed => {
                         if self.state.x > 0 {
                             self.state.x = 0;
                         } else {
-                            self.state.x = self.state.x.saturating_sub(1);
+                            self.state.x = self.state.x.saturating_sub(self.props.x_step);
                         }
+                    }
                     DirectionModuleMode::Cumulative => {
-                        self.state.x = self.state.x.saturating_sub(1);
+                        self.state.x = self.state.x.saturating_sub(self.props.x_step);
                     }
                 }
             },
@@ -198,15 +205,18 @@ impl Component for DirectionControl {
                 }
 
                 match self.props.module_mode {
-                    DirectionModuleMode::Immediate => self.state.x = 1,
-                    DirectionModuleMode::Mixed =>
+                    DirectionModuleMode::Immediate => {
+                        self.state.x = self.props.x_step
+                    },
+                    DirectionModuleMode::Mixed => {
                         if self.state.x < 0 {
                             self.state.x = 0
                         } else {
-                            self.state.x = self.state.x.saturating_add(1);
+                            self.state.x = self.state.x.saturating_add(self.props.x_step);
                         }
+                    }
                     DirectionModuleMode::Cumulative => {
-                        self.state.x = self.state.x.saturating_add(1);
+                        self.state.x = self.state.x.saturating_add(self.props.x_step);
                     }
                 }
             },
@@ -219,16 +229,16 @@ impl Component for DirectionControl {
 
                 match self.props.module_mode {
                     DirectionModuleMode::Immediate => {
-                        self.state.y = -1;
+                        self.state.y = - self.props.y_step;
                     },
                     DirectionModuleMode::Mixed =>
                         if self.state.y > 0 {
                             self.state.y = 0;
                         } else {
-                            self.state.y = self.state.y.saturating_sub(1);
+                            self.state.y = self.state.y.saturating_sub(self.props.y_step);
                         }
                     DirectionModuleMode::Cumulative => {
-                        self.state.y = self.state.y.saturating_sub(1);
+                        self.state.y = self.state.y.saturating_sub(self.props.y_step);
                     }
                 }
             },
@@ -241,16 +251,16 @@ impl Component for DirectionControl {
 
                 match self.props.module_mode {
                     DirectionModuleMode::Immediate => {
-                        self.state.y = -1;
+                        self.state.y = - self.props.y_step;
                     },
                     DirectionModuleMode::Mixed =>
                         if self.state.y < 0 {
                             self.state.y = 0;
                         } else {
-                            self.state.y = self.state.y.saturating_add(1);
+                            self.state.y = self.state.y.saturating_add(self.props.y_step);
                         }
                     DirectionModuleMode::Cumulative => {
-                        self.state.y = self.state.y.saturating_add(1);
+                        self.state.y = self.state.y.saturating_add(self.props.y_step);
                     }
                 }
             }
