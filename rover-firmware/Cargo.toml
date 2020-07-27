@@ -5,6 +5,7 @@ members = [
     "ux-console",
     "libdriver",
     "libdriver-robohat",
+    "libapi-http",
     "libapi-net",
     "libux-console",
     "libutil"

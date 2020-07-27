@@ -10,7 +10,8 @@ config = "0.9"
 log = "0.4"
 actix-web = "2.0"
 actix-rt = "1.1.1"
-serde = { version = "1.0.114", features = ["derive"] }
+serde = "1.0.114"
+libapi-http = { path = "../libapi-http" }
 libapi-net = { path = "../libapi-net" }
 libdriver = { path = "../libdriver" }
 libutil = { path = "../libutil" }

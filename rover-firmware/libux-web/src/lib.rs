@@ -11,8 +11,8 @@ use crate::app::App;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 mod app;
-mod scene;
-mod direction_control;
+mod components;
+mod services;
 
 #[wasm_bindgen(start)]
 pub fn launch() {

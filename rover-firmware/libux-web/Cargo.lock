@@ -321,6 +321,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "libapi-http"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_derive",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -330,7 +338,9 @@ checksum = "a9f8082297d534141b30c8d39e9b1773713ab50fdbe4ff30f750d063b3bfd701"
 name = "libux-web"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "css-in-rust",
+ "libapi-http",
  "log",
  "wasm-bindgen",
  "wasm-logger",

@@ -1,15 +1,12 @@
-use libapi_net::client::Client;
-use futures::lock::Mutex;
 use actix_web::HttpResponse;
+use futures::lock::Mutex;
 use serde::Serialize;
+
+use libapi_net::client::Client;
+use libapi_http::api::ResultResponse;
 
 pub struct State {
     pub rover_client: Mutex<Client>
-}
-
-#[derive(Debug, Serialize)]
-struct ResultResponse<T> {
-    result: T
 }
 
 pub fn map_rover_status_to_response<T, E: std::error::Error>(r: Result<T, E>) -> HttpResponse {

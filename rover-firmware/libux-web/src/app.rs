@@ -2,7 +2,7 @@ use log::{debug, trace};
 use css_in_rust::Style;
 use yew::{html, Component, ComponentLink, Html, ShouldRender};
 
-use crate::direction_control::{DirectionControl, DirectionControlMode, DirectionModuleMode};
+use crate::components::direction_control::{DirectionControl, DirectionControlMode, DirectionModuleMode};
 
 pub enum Msg {
     UpdateSensorDirection((i32, i32)),
