@@ -1,6 +1,7 @@
 use serde_derive::{Serialize, Deserialize};
+use strum_macros::Display as EnumDisplay;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, EnumDisplay, Serialize, Deserialize)]
 pub enum MoveType {
     Forward,
     Backward,
@@ -14,16 +15,11 @@ pub struct MoveRequest {
     pub speed: u8
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, EnumDisplay, Serialize, Deserialize)]
 pub enum SenseType {
     Lines,
     Obstacles,
     Distance
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SenseRequest {
-    pub r#type: SenseType
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -32,7 +28,7 @@ pub struct LookRequest {
     pub v: i16
 }
 
-#[derive(Debug, Serialize)]
-pub struct ResultResponse<T> {
-    pub result: T
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ValueResponse<T> {
+    pub value: T
 }

@@ -1,35 +1,76 @@
-use log::{debug, trace};
+use anyhow::{anyhow, Error};
+use std::time::Duration;
+use std::collections::hash_map::HashMap;
 use css_in_rust::Style;
-use yew::{html, Component, ComponentLink, Html, ShouldRender};
+use log::{debug, trace};
+use yew::{Component, ComponentLink, html, Html, ShouldRender};
+use yew::services::Task;
+use yew::services::timeout::TimeoutService;
+use yewtil::NeqAssign;
 
 use crate::components::direction_control::{DirectionControl, DirectionControlMode, DirectionModuleMode};
+use crate::services::rover_service::RoverService;
 
+#[derive(Debug)]
 pub enum Msg {
-    UpdateSensorDirection((i32, i32)),
-    UpdateMoveDirection((i32, i32))
+    RequestSensors,
+    SensorDirectionUpdate((i32, i32)),
+    MoveDirectionUpdate((i32, i32)),
+    DistanceUpdate(f32),
+    DistanceUpdateError(Error),
+    ObstaclesUpdate(Vec<bool>),
+    ObstaclesUpdateError(Error),
+    LinesUpdate(Vec<bool>),
+    LinesUpdateError(Error)
 }
+
+#[derive(Default)]
+pub struct State {
+    pub sensor_direction: (i32, i32),
+    pub move_direction: (i32, i32),
+    pub distance: f32,
+    pub distance_error: Option<Error>,
+    pub lines: Vec<bool>,
+    pub lines_error: Option<Error>,
+    pub obstacles: Vec<bool>,
+    pub obstacles_error: Option<Error>
+}
+
+const REQUEST_SENSORS_TASK: &str = "task/timeout/request_sensors";
+const GET_DISTANCE_TASK: &str = "task/fetch/distance";
+const GET_LINES_TASK: &str = "task/fetch/lines";
+const GET_OBSTACLES_TASK: &str = "task/fetch/obstacles";
 
 pub struct App {
     link: ComponentLink<Self>,
+    state: State,
     style: Style,
 
-    sensor_direction: (i32, i32),
-    move_direction: (i32, i32)
+    rover_service: RoverService,
+    web_tasks: HashMap<&'static str, Box<dyn Task>>,
 }
 
 impl App {
     fn current_distance(&self) -> Html {
-        html! {
-            <p>
-                {"Distance: "}{0.0}
-            </p>
+        if let Some(ref e) = self.state.distance_error {
+            return html! {
+                <p class="error">
+                    {format!("Distance: {} ({})", self.state.distance, e)}
+                </p>
+            }
+        } else {
+            return html! {
+                <p>
+                    {format!("Distance: {}", self.state.distance)}
+                </p>
+            }
         }
     }
 
     fn current_sensor_direction(&self) -> Html {
         html! {
             <p>
-                {"Sensor direction "}<b>{"[ "}{self.sensor_direction.0}{" ; "}{self.sensor_direction.1}{" ]"}</b>
+                {"Sensor direction "}<b>{"[ "}{self.state.sensor_direction.0}{" ; "}{self.state.sensor_direction.1}{" ]"}</b>
             </p>
         }
     }
@@ -37,22 +78,22 @@ impl App {
     fn current_move_direction(&self) -> Html {
         let mut direction = "■";
 
-        if self.move_direction.1 > 0 {
+        if self.state.move_direction.1 > 0 {
             direction = "↑";
-        } else if self.move_direction.1 < 0 {
+        } else if self.state.move_direction.1 < 0 {
             direction = "↓";
-        } else if self.move_direction.0 > 0 {
+        } else if self.state.move_direction.0 > 0 {
             direction = "↻";
-        } else if self.move_direction.0 < 0 {
+        } else if self.state.move_direction.0 < 0 {
             direction = "↺";
         }
 
         let mut speed = 0;
 
-        if self.move_direction.0 != 0 {
-            speed = self.move_direction.0;
-        } else if self.move_direction.1 != 0 {
-            speed = self.move_direction.1;
+        if self.state.move_direction.0 != 0 {
+            speed = self.state.move_direction.0;
+        } else if self.state.move_direction.1 != 0 {
+            speed = self.state.move_direction.1;
         }
 
         return html! {
@@ -62,12 +103,122 @@ impl App {
         }
     }
 
-    fn update_sensor_direction(&mut self, new_direction: (i32, i32)) {
-        self.sensor_direction = new_direction;
+    fn update_sensor_direction(&mut self, new_direction: (i32, i32)) -> ShouldRender {
+        self.state.sensor_direction.neq_assign(new_direction)
     }
 
-    fn update_move_direction(&mut self, new_direction: (i32, i32)) {
-        self.move_direction = new_direction;
+    fn update_move_direction(&mut self, new_direction: (i32, i32)) -> ShouldRender {
+        self.state.move_direction.neq_assign(new_direction)
+    }
+
+    fn update_distance(&mut self, new_distance: f32) -> ShouldRender {
+        self.web_tasks.remove(GET_DISTANCE_TASK);
+        self.state.distance_error.take();
+        self.reschedule_sensors_update();
+        self.state.distance.neq_assign(new_distance)
+    }
+
+    fn update_distance_error(&mut self, e: Error) -> ShouldRender {
+        self.web_tasks.remove(GET_DISTANCE_TASK);
+        self.state.distance_error = Some(e);
+        self.reschedule_sensors_update();
+        true
+    }
+
+    fn update_lines_state(&mut self, new_lines: Vec<bool>) -> ShouldRender {
+        self.web_tasks.remove(GET_LINES_TASK);
+        self.state.lines_error.take();
+        self.state.lines = new_lines;
+        self.reschedule_sensors_update();
+        true
+    }
+
+    fn update_lines_error(&mut self, e: Error) -> ShouldRender {
+        self.web_tasks.remove(GET_LINES_TASK);
+        self.state.lines_error = Some(e);
+        self.reschedule_sensors_update();
+        true
+    }
+
+    fn update_obstacles_state(&mut self, new_obstacles: Vec<bool>) -> ShouldRender {
+        self.web_tasks.remove(GET_OBSTACLES_TASK);
+        self.state.obstacles_error.take();
+        self.state.obstacles = new_obstacles;
+        self.reschedule_sensors_update();
+        true
+    }
+
+    fn update_obstacles_error(&mut self, e: Error) -> ShouldRender {
+        self.web_tasks.remove(GET_OBSTACLES_TASK);
+        self.state.obstacles_error = Some(e);
+        self.reschedule_sensors_update();
+        true
+    }
+
+    fn reschedule_sensors_update(&mut self) {
+        if !self.web_tasks.contains_key(GET_DISTANCE_TASK)
+        && !self.web_tasks.contains_key(GET_LINES_TASK)
+        && !self.web_tasks.contains_key(GET_OBSTACLES_TASK) {
+            self.request_sensors_update();
+        }
+    }
+
+    fn request_sensors_update(&mut self) -> ShouldRender {
+        match self.rover_service.get_distance(
+            self.link.callback(|r| {
+                match r {
+                    Ok(d) => Msg::DistanceUpdate(d),
+                    Err(e) => Msg::DistanceUpdateError(e)
+                }
+            })
+        ) {
+            Ok(task) => {
+                self.web_tasks.insert(GET_DISTANCE_TASK, Box::new(task));
+            },
+            Err(e) => {
+                self.link.send_message(
+                    Msg::DistanceUpdateError(anyhow!("Failed to request distance: {}", e))
+                );
+            },
+        };
+
+        match self.rover_service.get_lines(
+            self.link.callback(|r|{
+                match r {
+                    Ok(ls) => Msg::LinesUpdate(ls),
+                    Err(e) => Msg::LinesUpdateError(e)
+                }
+            })
+        ) {
+            Ok(task) => {
+                self.web_tasks.insert(GET_LINES_TASK, Box::new(task));
+            },
+            Err(e) => {
+                self.link.send_message(
+                    Msg::LinesUpdateError(anyhow!("Failed to request line detections: {}", e))
+                );
+            },
+        };
+
+        match self.rover_service.get_obstacles(
+            self.link.callback(|r|{
+                match r {
+                    Ok(os) => Msg::ObstaclesUpdate(os),
+                    Err(e) => Msg::ObstaclesUpdateError(e)
+                }
+            })
+        ) {
+            Ok(task) => {
+                self.web_tasks.insert(GET_OBSTACLES_TASK, Box::new(task));
+            },
+            Err(e) => {
+                self.link.send_message(
+                    Msg::ObstaclesUpdateError(anyhow!("Failed to request line detections: {}", e))
+                );
+            },
+        };
+
+        false
     }
 }
 
@@ -76,6 +227,7 @@ impl Component for App {
     type Properties = ();
 
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let state = State::default();
         let style = Style::create(
             "App",
             r"
@@ -86,6 +238,10 @@ impl Component for App {
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
+
+                .error {
+                    color: red;
+                }
 
                 .controls {
                     display: flex;
@@ -115,19 +271,43 @@ impl Component for App {
             ")
             .unwrap();
 
+        let rover_service = RoverService::new("http://rover-api-http/api");
+
+        let sensor_update_handle = TimeoutService::spawn(
+            Duration::from_secs(1),
+            link.callback(|_| Msg::RequestSensors));
+
+        let mut web_tasks = HashMap::<&str, Box<dyn Task>>::new();
+        web_tasks.insert(REQUEST_SENSORS_TASK, Box::new(sensor_update_handle));
+
+        trace!("Created.");
+
         App {
             link,
+            state,
             style,
-            sensor_direction: (0, 0),
-            move_direction: (0, 0)
+
+            rover_service,
+            web_tasks
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
-        match msg {
-            Msg::UpdateSensorDirection(sd) => self.update_sensor_direction(sd),
-            Msg::UpdateMoveDirection(md) => self.update_move_direction(md)
-        }
+        debug!("Processing message: {:#?}", msg);
+
+        let should_render = match msg {
+            Msg::RequestSensors => self.request_sensors_update(),
+            Msg::LinesUpdate(ls) => self.update_lines_state(ls),
+            Msg::LinesUpdateError(e) => self.update_lines_error(e),
+            Msg::ObstaclesUpdate(os) => self.update_obstacles_state(os),
+            Msg::ObstaclesUpdateError(e) => self.update_obstacles_error(e),
+            Msg::DistanceUpdate(d) => self.update_distance(d),
+            Msg::DistanceUpdateError(e) => self.update_distance_error(e),
+            Msg::SensorDirectionUpdate(sd) => self.update_sensor_direction(sd),
+            Msg::MoveDirectionUpdate(md) => self.update_move_direction(md),
+        };
+
+        trace!("{} re-render.", if should_render { "Skipping" } else { "Will" });
 
         true
     }
@@ -137,7 +317,7 @@ impl Component for App {
     }
 
     fn view(&self) -> Html {
-        trace!("Re-rendering.");
+        trace!("Rendering.");
 
         return html! {
             <div class=self.style.clone()>
@@ -150,7 +330,7 @@ impl Component for App {
                             controller_id="sensor"
                             control_mode={DirectionControlMode::Multidirectional}
                             module_mode={DirectionModuleMode::Cumulative}
-                            on_direction_change=self.link.callback(|dir| Msg::UpdateSensorDirection(dir))
+                            on_direction_change=self.link.callback(|dir| Msg::SensorDirectionUpdate(dir))
                             size={50} />
                     </div>
                     <div>
@@ -158,7 +338,7 @@ impl Component for App {
                         {self.current_move_direction()}
                         <DirectionControl
                             controller_id="platform"
-                            on_direction_change=self.link.callback(|dir| Msg::UpdateMoveDirection(dir))
+                            on_direction_change=self.link.callback(|dir| Msg::MoveDirectionUpdate(dir))
                             size={50}
                             x_step={10}
                             y_step={10}

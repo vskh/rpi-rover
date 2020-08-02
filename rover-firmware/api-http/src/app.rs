@@ -3,7 +3,7 @@ use futures::lock::Mutex;
 use serde::Serialize;
 
 use libapi_net::client::Client;
-use libapi_http::api::ResultResponse;
+use libapi_http::api::ValueResponse;
 
 pub struct State {
     pub rover_client: Mutex<Client>
@@ -22,7 +22,7 @@ pub fn map_rover_result_to_response<T: Serialize, E: std::error::Error>(r: Resul
     match r {
         Ok(v) => HttpResponse::Ok()
             .content_type("application/json")
-            .json(ResultResponse { result: v }),
+            .json(ValueResponse { value: v }),
         Err(e) => HttpResponse::InternalServerError()
             .content_type("text/plain")
             .body(e.to_string())
