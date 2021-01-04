@@ -40,7 +40,7 @@ pre-build:
 frontend/data/app:
 	cp -r ../rover-firmware/libux-web/app frontend/data
 
-prebuild-frontend: frontend
+prebuild-frontend: frontend/data/app
 
 servoblaster/src:
 	cp -r ../3rdparty/PiBits/ServoBlaster/user servoblaster/src
