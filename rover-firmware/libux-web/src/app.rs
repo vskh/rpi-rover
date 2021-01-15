@@ -271,7 +271,7 @@ impl Component for App {
             ")
             .unwrap();
 
-        let rover_service = RoverService::new("http://rover-api-http/api");
+        let rover_service = RoverService::new("http://rover/api");
 
         let sensor_update_handle = TimeoutService::spawn(
             Duration::from_secs(1),
