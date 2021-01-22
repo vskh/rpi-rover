@@ -1,14 +1,17 @@
 use anyhow::{anyhow, Error};
-use std::time::Duration;
-use std::collections::hash_map::HashMap;
 use css_in_rust::Style;
 use log::{debug, trace};
-use yew::{Component, ComponentLink, html, Html, ShouldRender};
-use yew::services::Task;
+use std::collections::hash_map::HashMap;
+use std::time::Duration;
 use yew::services::timeout::TimeoutService;
+use yew::services::Task;
+use yew::{html, Component, ComponentLink, Html, ShouldRender};
 use yewtil::NeqAssign;
 
-use crate::components::direction_control::{DirectionControl, DirectionControlMode, DirectionModuleMode};
+use crate::components::direction_control::{
+    DirectionControl, DirectionControlMode, DirectionModuleMode,
+};
+use crate::components::sensors_data::SensorsData;
 use crate::services::rover_service::RoverService;
 
 #[derive(Debug)]
@@ -21,7 +24,7 @@ pub enum Msg {
     ObstaclesUpdate(Vec<bool>),
     ObstaclesUpdateError(Error),
     LinesUpdate(Vec<bool>),
-    LinesUpdateError(Error)
+    LinesUpdateError(Error),
 }
 
 #[derive(Default)]
@@ -33,7 +36,7 @@ pub struct State {
     pub lines: Vec<bool>,
     pub lines_error: Option<Error>,
     pub obstacles: Vec<bool>,
-    pub obstacles_error: Option<Error>
+    pub obstacles_error: Option<Error>,
 }
 
 const REQUEST_SENSORS_TASK: &str = "task/timeout/request_sensors";
@@ -51,22 +54,6 @@ pub struct App {
 }
 
 impl App {
-    fn current_distance(&self) -> Html {
-        if let Some(ref e) = self.state.distance_error {
-            return html! {
-                <p class="error">
-                    {format!("Distance: {} ({})", self.state.distance, e)}
-                </p>
-            }
-        } else {
-            return html! {
-                <p>
-                    {format!("Distance: {}", self.state.distance)}
-                </p>
-            }
-        }
-    }
-
     fn current_sensor_direction(&self) -> Html {
         html! {
             <p>
@@ -100,7 +87,7 @@ impl App {
             <p>
                 {"Move direction "}<b>{direction}</b>{" Speed "}<b>{speed}</b>
             </p>
-        }
+        };
     }
 
     fn update_sensor_direction(&mut self, new_direction: (i32, i32)) -> ShouldRender {
@@ -157,65 +144,62 @@ impl App {
 
     fn reschedule_sensors_update(&mut self) {
         if !self.web_tasks.contains_key(GET_DISTANCE_TASK)
-        && !self.web_tasks.contains_key(GET_LINES_TASK)
-        && !self.web_tasks.contains_key(GET_OBSTACLES_TASK) {
+            && !self.web_tasks.contains_key(GET_LINES_TASK)
+            && !self.web_tasks.contains_key(GET_OBSTACLES_TASK) {
             self.request_sensors_update();
         }
     }
 
     fn request_sensors_update(&mut self) -> ShouldRender {
-        match self.rover_service.get_distance(
-            self.link.callback(|r| {
-                match r {
-                    Ok(d) => Msg::DistanceUpdate(d),
-                    Err(e) => Msg::DistanceUpdateError(e)
-                }
-            })
-        ) {
+        match self
+            .rover_service
+            .get_distance(self.link.callback(|r| match r {
+                Ok(d) => Msg::DistanceUpdate(d),
+                Err(e) => Msg::DistanceUpdateError(e),
+            })) {
             Ok(task) => {
                 self.web_tasks.insert(GET_DISTANCE_TASK, Box::new(task));
-            },
+            }
             Err(e) => {
-                self.link.send_message(
-                    Msg::DistanceUpdateError(anyhow!("Failed to request distance: {}", e))
-                );
-            },
+                self.link.send_message(Msg::DistanceUpdateError(anyhow!(
+                    "Failed to request distance: {}",
+                    e
+                )));
+            }
         };
 
-        match self.rover_service.get_lines(
-            self.link.callback(|r|{
-                match r {
-                    Ok(ls) => Msg::LinesUpdate(ls),
-                    Err(e) => Msg::LinesUpdateError(e)
-                }
-            })
-        ) {
+        match self
+            .rover_service
+            .get_lines(self.link.callback(|r| match r {
+                Ok(ls) => Msg::LinesUpdate(ls),
+                Err(e) => Msg::LinesUpdateError(e),
+            })) {
             Ok(task) => {
                 self.web_tasks.insert(GET_LINES_TASK, Box::new(task));
-            },
+            }
             Err(e) => {
-                self.link.send_message(
-                    Msg::LinesUpdateError(anyhow!("Failed to request line detections: {}", e))
-                );
-            },
+                self.link.send_message(Msg::LinesUpdateError(anyhow!(
+                    "Failed to request line detections: {}",
+                    e
+                )));
+            }
         };
 
-        match self.rover_service.get_obstacles(
-            self.link.callback(|r|{
-                match r {
-                    Ok(os) => Msg::ObstaclesUpdate(os),
-                    Err(e) => Msg::ObstaclesUpdateError(e)
-                }
-            })
-        ) {
+        match self
+            .rover_service
+            .get_obstacles(self.link.callback(|r| match r {
+                Ok(os) => Msg::ObstaclesUpdate(os),
+                Err(e) => Msg::ObstaclesUpdateError(e),
+            })) {
             Ok(task) => {
                 self.web_tasks.insert(GET_OBSTACLES_TASK, Box::new(task));
-            },
+            }
             Err(e) => {
-                self.link.send_message(
-                    Msg::ObstaclesUpdateError(anyhow!("Failed to request line detections: {}", e))
-                );
-            },
+                self.link.send_message(Msg::ObstaclesUpdateError(anyhow!(
+                    "Failed to request line detections: {}",
+                    e
+                )));
+            }
         };
 
         false
@@ -268,14 +252,16 @@ impl Component for App {
                     margin: 10px auto;
                     text-align: center;
                 }
-            ")
+            ",
+        )
             .unwrap();
 
         let rover_service = RoverService::new("http://rover/api");
 
         let sensor_update_handle = TimeoutService::spawn(
             Duration::from_secs(1),
-            link.callback(|_| Msg::RequestSensors));
+            link.callback(|_| Msg::RequestSensors),
+        );
 
         let mut web_tasks = HashMap::<&str, Box<dyn Task>>::new();
         web_tasks.insert(REQUEST_SENSORS_TASK, Box::new(sensor_update_handle));
@@ -288,7 +274,7 @@ impl Component for App {
             style,
 
             rover_service,
-            web_tasks
+            web_tasks,
         }
     }
 
@@ -307,7 +293,10 @@ impl Component for App {
             Msg::MoveDirectionUpdate(md) => self.update_move_direction(md),
         };
 
-        trace!("{} re-render.", if should_render { "Skipping" } else { "Will" });
+        trace!(
+            "{} re-render.",
+            if should_render { "Skipping" } else { "Will" }
+        );
 
         true
     }
@@ -319,9 +308,21 @@ impl Component for App {
     fn view(&self) -> Html {
         trace!("Rendering.");
 
+        let mut extra_messages: Vec<String> = vec![];
+        if let Some(ref distance_err) = self.state.distance_error {
+            extra_messages.push(format!("Distance/{}", distance_err));
+        }
+        if let Some(ref obstactles_err) = self.state.obstacles_error {
+            extra_messages.push(format!("Obstacles/{}", obstactles_err));
+        }
+
         return html! {
             <div class=self.style.clone()>
-                {self.current_distance()}
+                <SensorsData
+                    left_obstacle={self.state.obstacles.get(0).unwrap_or(&false)}
+                    right_obstacle={self.state.obstacles.get(1).unwrap_or(&false)}
+                    distance={self.state.distance}
+                    messages={extra_messages} />
                 <div class="controls">
                     <div>
                         <h5>{"Sensor Direction"}</h5>
@@ -351,4 +352,3 @@ impl Component for App {
         };
     }
 }
-
