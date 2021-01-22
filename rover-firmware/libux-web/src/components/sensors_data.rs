@@ -50,6 +50,7 @@ impl Component for SensorsData {
 
                 .obstacle {
                     min-width: 30px;
+                    text-align: center;
                     flex-grow: 0;
                 }
             "#)
