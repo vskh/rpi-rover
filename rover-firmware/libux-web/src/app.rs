@@ -333,7 +333,7 @@ impl Component for App {
             Msg::DistanceUpdate(d) => self.update_distance(d),
             Msg::DistanceUpdateError(e) => self.update_distance_error(e),
             Msg::SensorDirectionUpdate(sd) => self.update_sensor_direction(sd),
-            Msg::SensorDirectionUpdateError(e) => self.update_sensor_direction_error(e),
+            Msg::SensorDirectionUpdateError(e, sd) => self.update_sensor_direction_error(e, sd),
             Msg::MoveDirectionUpdate(md) => self.update_move_direction(md),
         };
 
