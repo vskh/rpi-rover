@@ -104,8 +104,8 @@ impl App {
             match self
                 .rover_service
                 .look_at(
-                    self.state.sensor_direction.0 as i16,
-                    self.state.sensor_direction.1 as i16,
+                    - self.state.sensor_direction.0 as i16,
+                    - self.state.sensor_direction.1 as i16,
                     self.link.callback(move |r| match r {
                         Ok(()) => Msg::SensorDirectionUpdate(new_direction),
                         Err(e) => Msg::SensorDirectionUpdateError(e, old_direction)
