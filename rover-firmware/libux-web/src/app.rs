@@ -18,6 +18,7 @@ use crate::services::rover_service::RoverService;
 pub enum Msg {
     RequestSensors,
     SensorDirectionUpdate((i32, i32)),
+    SensorDirectionUpdateError(Error, (i32, i32)),
     MoveDirectionUpdate((i32, i32)),
     DistanceUpdate(f32),
     DistanceUpdateError(Error),
@@ -30,6 +31,7 @@ pub enum Msg {
 #[derive(Default)]
 pub struct State {
     pub sensor_direction: (i32, i32),
+    pub sensor_direction_error: Option<Error>,
     pub move_direction: (i32, i32),
     pub distance: f32,
     pub distance_error: Option<Error>,
@@ -40,9 +42,12 @@ pub struct State {
 }
 
 const REQUEST_SENSORS_TASK: &str = "task/timeout/request_sensors";
-const GET_DISTANCE_TASK: &str = "task/fetch/distance";
-const GET_LINES_TASK: &str = "task/fetch/lines";
-const GET_OBSTACLES_TASK: &str = "task/fetch/obstacles";
+const GET_DISTANCE_TASK: &str = "task/sense/distance";
+const GET_LINES_TASK: &str = "task/sense/lines";
+const GET_OBSTACLES_TASK: &str = "task/sense/obstacles";
+
+const MOVE_TASK: &str = "task/move";
+const LOOK_TASK: &str = "task/look";
 
 pub struct App {
     link: ComponentLink<Self>,
@@ -50,7 +55,7 @@ pub struct App {
     style: Style,
 
     rover_service: RoverService,
-    web_tasks: HashMap<&'static str, Box<dyn Task>>,
+    backend_tasks: HashMap<&'static str, Box<dyn Task>>,
 }
 
 impl App {
@@ -91,7 +96,45 @@ impl App {
     }
 
     fn update_sensor_direction(&mut self, new_direction: (i32, i32)) -> ShouldRender {
-        self.state.sensor_direction.neq_assign(new_direction)
+        let old_direction = self.state.sensor_direction.clone();
+
+        if self.state.sensor_direction.neq_assign(new_direction) {
+            self.backend_tasks.remove(LOOK_TASK);
+
+            match self
+                .rover_service
+                .look_at(
+                    self.state.sensor_direction.0 as i16,
+                    self.state.sensor_direction.1 as i16,
+                    self.link.callback(move |r| match r {
+                        Ok(()) => Msg::SensorDirectionUpdate(new_direction),
+                        Err(e) => Msg::SensorDirectionUpdateError(e, old_direction)
+                    })) {
+                Ok(task) => {
+                    self.backend_tasks.insert(LOOK_TASK, Box::new(task));
+                }
+                Err(e) => {
+                    self.link.send_message(
+                        Msg::SensorDirectionUpdateError(
+                            anyhow!("Failed to request a look: {}", e),
+                            old_direction
+                        )
+                    );
+                }
+            }
+
+            return true;
+        }
+
+        false
+    }
+
+    fn update_sensor_direction_error(&mut self, e: Error, prev_direction: (i32, i32)) -> ShouldRender {
+        self.backend_tasks.remove(LOOK_TASK);
+        self.state.sensor_direction_error = Some(e);
+        self.state.sensor_direction = prev_direction;
+
+        true
     }
 
     fn update_move_direction(&mut self, new_direction: (i32, i32)) -> ShouldRender {
@@ -99,21 +142,21 @@ impl App {
     }
 
     fn update_distance(&mut self, new_distance: f32) -> ShouldRender {
-        self.web_tasks.remove(GET_DISTANCE_TASK);
+        self.backend_tasks.remove(GET_DISTANCE_TASK);
         self.state.distance_error.take();
         self.reschedule_sensors_update();
         self.state.distance.neq_assign(new_distance)
     }
 
     fn update_distance_error(&mut self, e: Error) -> ShouldRender {
-        self.web_tasks.remove(GET_DISTANCE_TASK);
+        self.backend_tasks.remove(GET_DISTANCE_TASK);
         self.state.distance_error = Some(e);
         self.reschedule_sensors_update();
         true
     }
 
     fn update_lines_state(&mut self, new_lines: Vec<bool>) -> ShouldRender {
-        self.web_tasks.remove(GET_LINES_TASK);
+        self.backend_tasks.remove(GET_LINES_TASK);
         self.state.lines_error.take();
         self.state.lines = new_lines;
         self.reschedule_sensors_update();
@@ -121,14 +164,14 @@ impl App {
     }
 
     fn update_lines_error(&mut self, e: Error) -> ShouldRender {
-        self.web_tasks.remove(GET_LINES_TASK);
+        self.backend_tasks.remove(GET_LINES_TASK);
         self.state.lines_error = Some(e);
         self.reschedule_sensors_update();
         true
     }
 
     fn update_obstacles_state(&mut self, new_obstacles: Vec<bool>) -> ShouldRender {
-        self.web_tasks.remove(GET_OBSTACLES_TASK);
+        self.backend_tasks.remove(GET_OBSTACLES_TASK);
         self.state.obstacles_error.take();
         self.state.obstacles = new_obstacles;
         self.reschedule_sensors_update();
@@ -136,16 +179,16 @@ impl App {
     }
 
     fn update_obstacles_error(&mut self, e: Error) -> ShouldRender {
-        self.web_tasks.remove(GET_OBSTACLES_TASK);
+        self.backend_tasks.remove(GET_OBSTACLES_TASK);
         self.state.obstacles_error = Some(e);
         self.reschedule_sensors_update();
         true
     }
 
     fn reschedule_sensors_update(&mut self) {
-        if !self.web_tasks.contains_key(GET_DISTANCE_TASK)
-            && !self.web_tasks.contains_key(GET_LINES_TASK)
-            && !self.web_tasks.contains_key(GET_OBSTACLES_TASK) {
+        if !self.backend_tasks.contains_key(GET_DISTANCE_TASK)
+            && !self.backend_tasks.contains_key(GET_LINES_TASK)
+            && !self.backend_tasks.contains_key(GET_OBSTACLES_TASK) {
             self.request_sensors_update();
         }
     }
@@ -158,7 +201,7 @@ impl App {
                 Err(e) => Msg::DistanceUpdateError(e),
             })) {
             Ok(task) => {
-                self.web_tasks.insert(GET_DISTANCE_TASK, Box::new(task));
+                self.backend_tasks.insert(GET_DISTANCE_TASK, Box::new(task));
             }
             Err(e) => {
                 self.link.send_message(Msg::DistanceUpdateError(anyhow!(
@@ -175,7 +218,7 @@ impl App {
                 Err(e) => Msg::LinesUpdateError(e),
             })) {
             Ok(task) => {
-                self.web_tasks.insert(GET_LINES_TASK, Box::new(task));
+                self.backend_tasks.insert(GET_LINES_TASK, Box::new(task));
             }
             Err(e) => {
                 self.link.send_message(Msg::LinesUpdateError(anyhow!(
@@ -192,7 +235,7 @@ impl App {
                 Err(e) => Msg::ObstaclesUpdateError(e),
             })) {
             Ok(task) => {
-                self.web_tasks.insert(GET_OBSTACLES_TASK, Box::new(task));
+                self.backend_tasks.insert(GET_OBSTACLES_TASK, Box::new(task));
             }
             Err(e) => {
                 self.link.send_message(Msg::ObstaclesUpdateError(anyhow!(
@@ -274,7 +317,7 @@ impl Component for App {
             style,
 
             rover_service,
-            web_tasks,
+            backend_tasks: web_tasks,
         }
     }
 
@@ -290,6 +333,7 @@ impl Component for App {
             Msg::DistanceUpdate(d) => self.update_distance(d),
             Msg::DistanceUpdateError(e) => self.update_distance_error(e),
             Msg::SensorDirectionUpdate(sd) => self.update_sensor_direction(sd),
+            Msg::SensorDirectionUpdateError(e) => self.update_sensor_direction_error(e),
             Msg::MoveDirectionUpdate(md) => self.update_move_direction(md),
         };
 
@@ -314,6 +358,9 @@ impl Component for App {
         }
         if let Some(ref obstactles_err) = self.state.obstacles_error {
             extra_messages.push(format!("Obstacles/{}", obstactles_err));
+        }
+        if let Some(ref look_err) = self.state.sensor_direction_error {
+            extra_messages.push(format!("Sensors/{}", look_err))
         }
 
         return html! {
