@@ -124,6 +124,8 @@ impl App {
             }
 
             return true;
+        } else {
+            self.state.sensor_direction_error.take();
         }
 
         false
