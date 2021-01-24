@@ -22,8 +22,6 @@ services:
     image: ${REPOPREFIX}video:${TAG}
     ports:
       - 5858:5858
-    group_add:
-      - video
     devices:
       - "/dev/video0:/dev/video0"
     restart: always
