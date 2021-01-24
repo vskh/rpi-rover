@@ -18,6 +18,14 @@ services:
     volumes:
       - servoblaster:/servoblaster
 
+  video:
+    image: ${REPOPREFIX}video:${TAG}
+    ports:
+      - 5858:5858
+    devices:
+      - "/dev/video0:/dev/video0"
+    restart: always
+
   frontend:
     image: ${REPOPREFIX}frontend:${TAG}
     ports:
