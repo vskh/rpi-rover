@@ -2,8 +2,7 @@ FROM vskhimages/docker-raspberry-pi-runner:latest
 
 RUN apt install -y vlc
 RUN useradd -mr -G video vlc && \
-    echo "vlc ALL = (root) NOPASSWD:/usr/bin/vlc-wrapper" > /etc/sudoers.d/vlc && \
-    chown vlc:video /dev/video0
+    echo "vlc ALL = (root) NOPASSWD:/usr/bin/vlc-wrapper" > /etc/sudoers.d/vlc
 
 USER vlc
 
