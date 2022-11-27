@@ -2,7 +2,7 @@
 #
 # Configuration:
 # - REPOPREFIX: 	Docker REPOPREFIX prefix for project infra containers publishing.
-# - BUILDID: 		Arbitrary build identifier, user for images tagging. Default: latest.
+# - BUILDID: 		Arbitrary build identifier, used for images tagging. Default: latest.
 # - IMAGEPLATFORM: 	Platform to target images to. Should match Raspberry Pi architecture.
 #					Default: linux/arm/v7.
 # - TARGETPLATFORM: Platform to compile code for. Should match Raspberry Pi architecture.
@@ -22,7 +22,7 @@
 # Notes:
 # - you should be logged in to the $(REPOPREFIX) before trying to publish to it.
 # - docker builds are done using buildkit (https://docs.docker.com/buildx/working-with-buildx/)
-# 	which is expected to be installed beforehands.
+# 	which is expected to be installed beforehand.
 #
 # Examples:
 # 	make deploy REPOPREFIX=mydocker.home/myproject/ BUILDID=testbuild1
