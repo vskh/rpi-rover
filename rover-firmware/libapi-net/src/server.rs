@@ -88,7 +88,7 @@ where
     async fn reset(&mut self) -> Result<()> {
         fn to_server_err<T: std::error::Error>(e: T) -> Error {
             Error::Server(e.to_string())
-        };
+        }
 
         if let Some(ref mut mover) = self.mover {
             mover.reset().await.map_err(to_server_err)?;
