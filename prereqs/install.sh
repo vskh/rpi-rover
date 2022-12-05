@@ -13,13 +13,13 @@
 #
 
 SCRIPT_DIR=`dirname $0`
-export PREREQS_DIR=`readlink -f $SCRIPT_DIR`
+export PREREQS_DIR=$(readlink -f "${SCRIPT_DIR}")
 
-if [ "`uname -s`" = "Linux" ];
+if [ "$(uname -s)" = "Linux" ];
 then
-  ${PREREQS_DIR}/install-docker.sh
+  "${PREREQS_DIR}"/install-docker.sh
 fi
 
-${PREREQS_DIR}/install-tools.sh
+"${PREREQS_DIR}"/install-tools.sh
 
 # end

@@ -17,12 +17,14 @@ However, toolchain/target that Rust comes with is not enough for "host != target
 
 There are multiple ways to get missing bits:
  - install host-native package of cross-compilation toolchain where it is available. For example, GNU compiler collection for cross-compilation platform-specific packages are available in Debian (e.g., gcc-arm-linux-gnueabihf for older Raspbery Pi 2 running armv6 chip)
-   - if no such toolchain is available or compilation needs to happen somewhere more exotic than Ubuntu (as my FreeBSD build machine), toolchain can be compiled with [`crosstool-ng`](https://crosstool-ng.github.io/). In this case, corresponding linker can be configured for the specific target platform in `$HOME/.cargo/config`, e.g.:
-     ```
-     [target.arm-unknown-linux-gnueabihf]
-     linker = "arm-linux-gnueabihf-gcc"
-     ```
-     This is often also needed because not always Rust's and cross toolchain package maintainers' understanding of tools naming scheme matches. Note, though, it can be insufficient because some crates might have their own way of deriving linker name (and cargo does not propagate the one configured yet, see https://github.com/rust-lang/cc-rs/issues/82).
+ - if no such toolchain is available or compilation needs to happen somewhere more exotic than Ubuntu (as my FreeBSD build machine), toolchain can be compiled with [`crosstool-ng`](https://crosstool-ng.github.io/). In this case, corresponding linker can be configured for the specific target platform in `$HOME/.cargo/config`, e.g.:
+   ```
+   [target.arm-unknown-linux-gnueabihf]
+   linker = "arm-linux-gnueabihf-gcc"
+   ```
+   This is often also needed because not always Rust's and cross toolchain package maintainers' understanding of tools naming scheme matches.
+   
+   Note, though, it can be insufficient because some crates might have their own way of deriving linker name and cargo does not propagate the one configured yet, see https://github.com/rust-lang/cc-rs/issues/82. However, the very same issue links to a merged PR https://github.com/rust-lang/cc-rs/pull/106 that can be used as workaround by setting the `CROSS_COMPILE` environment variable that seems to often get appended to figure out compiler/linker full file name. I tried to make it a full path prefix, too, and it worked!
  - Finally, with enough luck and docker, one can use [`cross-rs`](https://github.com/cross-rs/cross). This tool provides pre-built containers with specific toolchain inside that is transparently (`cross` mimics/invokes `cargo` and falls back to it in some cases) used to get final binaries. If target platform is there on supported list, most likely, cross-compilation will just work. Otherwise, with a little more work (to build corresponding container), it will still eventually work.
 > *Caveat for build machine without native docker support (e.g. FreeBSD)*
 > 
