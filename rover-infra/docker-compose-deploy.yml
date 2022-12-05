@@ -2,13 +2,13 @@ version: '3'
 
 services:
   wifiap:
-    image: ${REPOPREFIX}wifiap:${TAG}
+    image: ${REPO_PREFIX}wifiap:${TAG}
     restart: always
     network_mode: host
     privileged: true
 
   servoblaster:
-    image: ${REPOPREFIX}servoblaster:${TAG}
+    image: ${REPO_PREFIX}servoblaster:${TAG}
     restart: always
     devices:
       - "/dev/mem:/dev/mem"
@@ -19,19 +19,19 @@ services:
       - servoblaster:/servoblaster
 
   video:
-    image: ${REPOPREFIX}video:${TAG}
+    image: ${REPO_PREFIX}video:${TAG}
     devices:
       - "/dev/video0:/dev/video0"
     restart: always
 
   frontend:
-    image: ${REPOPREFIX}frontend:${TAG}
+    image: ${REPO_PREFIX}frontend:${TAG}
     ports:
       - 80:80
     restart: always
 
   rover-api-net:
-    image: ${REPOPREFIX}rover-api-net:${TAG}
+    image: ${REPO_PREFIX}rover-api-net:${TAG}
     devices:
       - "/dev/gpiomem:/dev/gpiomem"
       - "/dev/gpiochip0:/dev/gpiochip0"
@@ -40,7 +40,7 @@ services:
     restart: always
 
   rover-api-http:
-    image: ${REPOPREFIX}rover-api-http:${TAG}
+    image: ${REPO_PREFIX}rover-api-http:${TAG}
     restart: always
 
 volumes:

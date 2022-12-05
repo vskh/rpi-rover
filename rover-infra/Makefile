@@ -1,12 +1,12 @@
 # Makefile building containers of RPI-Rover projects.
 
-REPOPREFIX 			?=
-BUILDID				?= latest
+REPO_PREFIX 		?=
+BUILD_ID			?= latest
 
-IMAGEPLATFORM		?= linux/arm/v7
-TARGETPLATFORM 		?= armv7-unknown-linux-gnueabihf
-BUILDPROFILE 		?= release
-BUILDERNAME			?= rpi-rover-builder-$(BUILDID)
+IMAGE_PLATFORM		?= linux/arm/v7
+TARGET_PLATFORM 	?= armv7-unknown-linux-gnueabihf
+BUILD_PROFILE 		?= release
+BUILDER_NAME		?= rpi-rover-builder-$(BUILD_ID)
 
 CONTAINERS 			= wifiap servoblaster video frontend rover-api-net rover-api-http
 PREBUILD_TARGETS	= prebuild-frontend prebuild-servoblaster prebuild-rover-api-net prebuild-rover-api-http
@@ -20,22 +20,22 @@ build: $(BUILD_TARGETS) post-build
 publish: build $(PUBLISH_TARGETS)
 
 pre-publish:
-ifndef REPOPREFIX
-	$(error REPOPREFIX is not set. Required for publishing.)
+ifndef REPO_PREFIX
+	$(error REPO_PREFIX is not set. Required for publishing.)
 endif
 
 deploy: publish
-	TAG=$(BUILDID) REPOPREFIX=$(REPOPREFIX) docker-compose -f docker-compose-deploy.yml up -d
+	TAG=$(BUILD_ID) REPO_PREFIX=$(REPO_PREFIX) docker-compose -f docker-compose-deploy.yml up -d
 
 undeploy:
-	TAG=$(BUILDID) REPOPREFIX=$(REPOPREFIX) docker-compose -f docker-compose-deploy.yml down
+	TAG=$(BUILD_ID) REPO_PREFIX=$(REPO_PREFIX) docker-compose -f docker-compose-deploy.yml down
 
 clean: $(CLEAN_TARGETS)
 
 pre-build:
-	- docker buildx create --name $(BUILDERNAME)
-	docker buildx inspect --bootstrap $(BUILDERNAME)
-	docker buildx use $(BUILDERNAME)
+	- docker buildx create --name $(BUILDER_NAME)
+	docker buildx inspect --bootstrap $(BUILDER_NAME)
+	docker buildx use $(BUILDER_NAME)
 
 frontend/data/app:
 	cp -r ../rover-firmware/libux-web/app frontend/data
@@ -51,7 +51,7 @@ rover-api-net/app:
 	mkdir -p rover-api-net/app
 	cp -v ../rover-firmware/api-net/Config.toml rover-api-net/app
 	cp -v ../rover-firmware/api-net/log4rs.yml rover-api-net/app
-	cp -v ../rover-firmware/target/$(TARGETPLATFORM)/$(BUILDPROFILE)/api-net rover-api-net/app
+	cp -v ../rover-firmware/target/$(TARGET_PLATFORM)/$(BUILD_PROFILE)/api-net rover-api-net/app
 
 prebuild-rover-api-net: rover-api-net/app
 
@@ -59,22 +59,22 @@ rover-api-http/app:
 	mkdir -p rover-api-http/app
 	cp -v ../rover-firmware/api-http/Config.toml rover-api-http/app
 	cp -v ../rover-firmware/api-http/log4rs.yml rover-api-http/app
-	cp -v ../rover-firmware/target/$(TARGETPLATFORM)/$(BUILDPROFILE)/api-http rover-api-http/app
+	cp -v ../rover-firmware/target/$(TARGET_PLATFORM)/$(BUILD_PROFILE)/api-http rover-api-http/app
 
 prebuild-rover-api-http: rover-api-http/app
 
 $(BUILD_TARGETS): pre-build $(PREBUILD_TARGETS)
 	docker buildx build $(@:build-%=%) \
-		--platform=$(IMAGEPLATFORM) \
+		--platform=$(IMAGE_PLATFORM) \
 		--load \
-		-t $(REPOPREFIX)$(@:build-%=%):$(BUILDID) \
-		--build-arg TARGETPLATFORM=$(TARGETPLATFORM)
+		-t $(REPO_PREFIX)$(@:build-%=%):$(BUILD_ID) \
+		--build-arg TARGET_PLATFORM=$(TARGET_PLATFORM)
 
 post-build:
-	- docker buildx rm $(BUILDERNAME)
+	- docker buildx rm $(BUILDER_NAME)
 
 $(PUBLISH_TARGETS): pre-publish
-	docker push $(REPOPREFIX)$(@:publish-%=%):$(BUILDID)
+	docker push $(REPO_PREFIX)$(@:publish-%=%):$(BUILD_ID)
 
 clean-frontend-extra:
 	rm -rf frontend/data/app

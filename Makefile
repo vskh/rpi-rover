@@ -1,37 +1,43 @@
 # Makefile for RPI-Rover project
 #
 # Configuration:
-# - REPOPREFIX: 	Docker REPOPREFIX prefix for project infra containers publishing.
-# - BUILDID: 		Arbitrary build identifier, used for images tagging. Default: latest.
-# - IMAGEPLATFORM: 	Platform to target images to. Should match Raspberry Pi architecture.
-#					Default: linux/arm/v7.
-# - TARGETPLATFORM: Platform to compile code for. Should match Raspberry Pi architecture.
-# 					Default: arm-unknown-linux-gnueabihf
-# - BUILDERNAME: 	Docker Buildkit builder name for this build.
+# - REPO_PREFIX: 		Docker REPO_PREFIX prefix for project infra containers publishing.
+# - BUILD_ID: 			Arbitrary build identifier, used for images tagging. Default: latest.
+# - IMAGE_PLATFORM: 	Platform to target images to. Should match Raspberry Pi architecture.
+#						Default: linux/arm/v7.
+# - TARGET_PLATFORM: 	Platform to compile code for. Should match Raspberry Pi architecture.
+# 						Default: arm-unknown-linux-gnueabihf
+# - BUILDER_NAME: 		Docker BuildKit builder name for this build.
+# - USE_CROSS: 			Define to use cross-rs for cross-compilation.
+# 						Default: unset (do not use)
+# - USE_CROSS_REMOTE:	Define if local docker client connects to remote docker server.
+#						Default: unset (local docker server)
 #
 # Supported targets:
 # - build: 			builds all parts of the project.
 # - publish: 		publishes built docker containers of project infra to specified
-# 					Docker $(REPOPREFIX) with specified $(BUILDID) as tag.
-# - deploy: 		deploys project infra into local docker using $(REPOPREFIX) and
-#					$(BUILDID) as tag.
+# 					Docker $(REPO_PREFIX) with specified $(BUILD_ID) as tag.
+# - deploy: 		deploys project infra into local docker using $(REPO_PREFIX) and
+#					$(BUILD_ID) as tag.
 # - undeploy: 		undeployed and removes docker containers from local docker that
 # 					were previously spun up using 'deloy' target.
 # - clean: 			attempts to clean all build artifacts, including any local docker
 # 					images of project infra.
 # Notes:
-# - you should be logged in to the $(REPOPREFIX) before trying to publish to it.
+# - you should be logged in to the $(REPO_PREFIX) before trying to publish to it.
 # - docker builds are done using buildkit (https://docs.docker.com/buildx/working-with-buildx/)
 # 	which is expected to be installed beforehand.
 #
 # Examples:
-# 	make deploy REPOPREFIX=mydocker.home/myproject/ BUILDID=testbuild1
+# 	make deploy REPO_PREFIX=mydocker.home/myproject/ BUILD_ID=testbuild1
 #
 
-BUILDID						?= latest
-BUILDPROFILE 				?= release
-IMAGEPLATFORM				?= linux/arm/v7
-TARGETPLATFORM 				?= arm7-unknown-linux-gnueabihf
+BUILD_ID					?= latest
+BUILD_PROFILE 				?= release
+IMAGE_PLATFORM				?= linux/arm/v7
+TARGET_PLATFORM 			?= arm7-unknown-linux-gnueabihf
+USE_CROSS 					?=
+USE_CROSS_REMOTE 			?=
 
 SUBPROJECTS 				= rover-firmware rover-infra
 BUILD_TARGETS 				= $(SUBPROJECTS:%=build-%)

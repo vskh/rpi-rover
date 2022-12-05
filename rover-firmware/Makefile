@@ -1,18 +1,23 @@
 # Makefile for Rust components of RPI-Rover project.
 
-TARGETPLATFORM 		?= armv7-unknown-linux-gnueabihf
-BUILDPROFILE 		?= release
+TARGET_PLATFORM 	?= armv7-unknown-linux-gnueabihf
+BUILD_PROFILE 		?= release
 
 export PATH 		:= $(HOME)/.cargo/bin:$(PATH)
 
-ifeq ($(BUILDPROFILE),release)
-	PROFILEOPT := --release
+ifeq ($(BUILD_PROFILE),release)
+	PROFILEOPT 		:= --release
 else
-	PROFILEOPT :=
+	PROFILEOPT 		:=
+endif
+
+BUILD_TOOL 			:= cargo
+ifdef $(USE_CROSS)
+	BUILD_TOOL 		:= cross
 endif
 
 build:
-	cross build $(PROFILEOPT) --target $(TARGETPLATFORM)
+	$(BUILD_TOOL) build $(PROFILEOPT) --target $(TARGET_PLATFORM)
 	wasm-pack build --target web --no-typescript --out-dir app/pkg libux-web
 
 publish: build

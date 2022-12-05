@@ -19,4 +19,10 @@ cat <<EOF
 linker = "${PREREQS_DIR}/x-tools/armv7-rpi2-linux-gnueabihf/bin/armv7-rpi2-linux-gnueabihf-gcc"
 EOF >> ${HOME}/.cargo/config
 
+# NOTE: above configuration in cargo config which would be used in most of the cases might be insufficient, particularly,
+# for crates that use custom scripts or cc-rs to compile.
+# These could be addressed by also setting CROSS_COMPILE environment variable as that's what would be used
+# to determine the linker/compiler commandline, as in e.g.:
+# CC := $(CROSS_COMPILE)-gcc
+
 # end

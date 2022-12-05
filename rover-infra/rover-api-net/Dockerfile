@@ -1,6 +1,6 @@
 FROM vskhimages/docker-raspberry-pi-runner:latest
 
-ARG TARGETPLATFORM=arm-unknown-linux-gnueabihf
+ARG TARGET_PLATFORM=arm-unknown-linux-gnueabihf
 
 COPY ./app /app
 
