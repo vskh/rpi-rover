@@ -20,6 +20,6 @@ then
   ${PREREQS_DIR}/install-docker.sh
 fi
 
-${PREREQS_DIR}/install-crosscompiling-tools.sh
+${PREREQS_DIR}/install-tools.sh
 
 # end
