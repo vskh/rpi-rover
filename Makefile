@@ -36,8 +36,6 @@ BUILD_ID					?= latest
 BUILD_PROFILE 				?= release
 IMAGE_PLATFORM				?= linux/arm/v7
 TARGET_PLATFORM 			?= arm7-unknown-linux-gnueabihf
-USE_CROSS 					?=
-USE_CROSS_REMOTE 			?=
 
 SUBPROJECTS 				= rover-firmware rover-infra
 BUILD_TARGETS 				= $(SUBPROJECTS:%=build-%)

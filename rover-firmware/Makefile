@@ -12,8 +12,11 @@ else
 endif
 
 BUILD_TOOL 			:= cargo
-ifdef $(USE_CROSS)
+ifdef USE_CROSS
 	BUILD_TOOL 		:= cross
+	ifdef USE_CROSS_REMOTE
+		BUILD_TOOL	:= CROSS_REMOTE=1 cross
+	endif
 endif
 
 build:
