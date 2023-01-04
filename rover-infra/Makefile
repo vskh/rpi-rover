@@ -65,7 +65,7 @@ prebuild-rover-api-http: rover-api-http/app
 
 rover-ux-console/app:
 	mkdir -p rover-ux-console/app
-	cp -v ../rover-firmware/ux-console/$(TARGET_PLATFORM)/$(BUILD_PROFILE)/ux-console rover-ux-console/app
+	cp -v ../rover-firmware/target/$(TARGET_PLATFORM)/$(BUILD_PROFILE)/ux-console rover-ux-console/app
 
 prebuild-rover-ux-console: rover-ux-console/app
 
