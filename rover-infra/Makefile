@@ -8,12 +8,12 @@ TARGET_PLATFORM 	?= armv7-unknown-linux-gnueabihf
 BUILD_PROFILE 		?= release
 BUILDER_NAME		?= rpi-rover-builder-$(BUILD_ID)
 
-CONTAINERS 			= wifiap servoblaster video frontend rover-api-net rover-api-http
-PREBUILD_TARGETS	= prebuild-frontend prebuild-servoblaster prebuild-rover-api-net prebuild-rover-api-http
+CONTAINERS 			= wifiap servoblaster video frontend rover-api-net rover-api-http rover-ux-console
+PREBUILD_TARGETS	= prebuild-frontend prebuild-servoblaster prebuild-rover-api-net prebuild-rover-api-http prebuild-rover-ux-console
 BUILD_TARGETS		= $(CONTAINERS:%=build-%)
 PUBLISH_TARGETS		= $(CONTAINERS:%=publish-%)
 CLEAN_TARGETS		= $(CONTAINERS:%=clean-%)
-CLEAN_EXTRA_TARGETS = clean-frontend-extra clean-servoblaster-extra clean-rover-api-net-extra clean-rover-api-http-extra
+CLEAN_EXTRA_TARGETS = clean-frontend-extra clean-servoblaster-extra clean-rover-api-net-extra clean-rover-api-http-extra clean-rover-ux-console-extra
 
 build: $(BUILD_TARGETS) post-build
 
@@ -63,6 +63,12 @@ rover-api-http/app:
 
 prebuild-rover-api-http: rover-api-http/app
 
+rover-ux-console/app:
+	mkdir -p rover-ux-console/app
+	cp -v ../rover-firmware/ux-console/$(TARGET_PLATFORM)/$(BUILD_PROFILE)/ux-console rover-ux-console/app
+
+prebuild-rover-ux-console: rover-ux-console/app
+
 $(BUILD_TARGETS): pre-build $(PREBUILD_TARGETS)
 	docker buildx build $(@:build-%=%) \
 		--platform=$(IMAGE_PLATFORM) \
@@ -83,10 +89,13 @@ clean-servoblaster-extra:
 	rm -rf servoblaster/src
 
 clean-rover-api-http-extra:
-	rm -rf rover-api-http/build
+	rm -rf rover-api-http/app
 
 clean-rover-api-net-extra:
-	rm -rf rover-api-net/build
+	rm -rf rover-api-net/app
+
+clean-rover-ux-console-extra:
+	rm -rf rover-ux-console/app
 
 $(CLEAN_TARGETS): $(CLEAN_EXTRA_TARGETS) post-build
 	docker images --filter="reference=$(@:clean-%=%):*" --format="{{.ID}}" | sort -u | xargs -r docker rmi --force
