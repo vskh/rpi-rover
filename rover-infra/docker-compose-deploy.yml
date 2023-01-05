@@ -18,11 +18,11 @@ services:
     volumes:
       - servoblaster:/servoblaster
 
-  video:
-    image: ${REPO_PREFIX}video:${TAG}
-    devices:
-      - "/dev/video0:/dev/video0"
-    restart: always
+#  video:
+#    image: ${REPO_PREFIX}video:${TAG}
+#    devices:
+#      - "/dev/video0:/dev/video0"
+#    restart: always
 
   frontend:
     image: ${REPO_PREFIX}frontend:${TAG}
