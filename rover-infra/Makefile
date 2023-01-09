@@ -8,7 +8,7 @@ TARGET_PLATFORM 	?= armv7-unknown-linux-gnueabihf
 BUILD_PROFILE 		?= release
 BUILDER_NAME		?= rpi-rover-builder-$(BUILD_ID)
 
-CONTAINERS 			= wifiap servoblaster video frontend rover-api-net rover-api-http rover-ux-console
+CONTAINERS 			= wifiap servoblaster frontend rover-api-net rover-api-http rover-ux-console # video
 PREBUILD_TARGETS	= prebuild-frontend prebuild-servoblaster prebuild-rover-api-net prebuild-rover-api-http prebuild-rover-ux-console
 BUILD_TARGETS		= $(CONTAINERS:%=build-%)
 PUBLISH_TARGETS		= $(CONTAINERS:%=publish-%)
