@@ -78,14 +78,16 @@ impl SoftPwmWorker {
         init_duty_cycle: f32,
         channel: mpsc::Receiver<PwmUpdate>,
     ) -> SoftPwmWorker {
+        let (time_on_ns, time_off_ns) = SoftPwmWorker::calc_times(init_frequency, init_duty_cycle);
+
         SoftPwmWorker {
             gpio,
             pin,
             frequency: init_frequency,
             duty_cycle: init_duty_cycle,
             channel,
-            time_on: Duration::ZERO,
-            time_off: Duration::ZERO,
+            time_on: Duration::from_nanos(time_on_ns),
+            time_off: Duration::from_nanos(time_off_ns),
         }
     }
 
