@@ -4,6 +4,7 @@ use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
+use log::{error, trace};
 use rppal::gpio::{Gpio, Level, Mode};
 use thiserror::Error as LibError;
 
@@ -94,22 +95,27 @@ impl SoftPwmWorker {
         let time_off_sec = period_sec - time_on_sec;
         self.time_on = Duration::from_nanos((time_on_sec * 1000000000.0) as u64);
         self.time_off = Duration::from_nanos((time_off_sec * 1000000000.0) as u64);
+
+        trace!("Updated PWM timing: f = {} Hz, T = {} s, duty = {}, on = {} ns, off = {} ns",
+            self.frequency, period_sec, self.duty_cycle, self.time_on.as_nanos(), self.time_off.as_nanos());
     }
 
     fn check_updates(&mut self, timeout: Duration) -> Option<(Duration, Duration)> {
         let mut updated = false;
-        if let Ok(update) = self.channel.recv_timeout(timeout) {
-            match update {
-                PwmUpdate::Stop => return None,
-                PwmUpdate::Frequency(nf) => {
-                    self.frequency = nf;
-                    updated = true;
+        match self.channel.recv_timeout(timeout) {
+            Ok(update) =>
+                match update {
+                    PwmUpdate::Stop => return None,
+                    PwmUpdate::Frequency(nf) => {
+                        self.frequency = nf;
+                        updated = true;
+                    }
+                    PwmUpdate::DutyCycle(ndc) => {
+                        self.duty_cycle = ndc;
+                        updated = true;
+                    }
                 }
-                PwmUpdate::DutyCycle(ndc) => {
-                    self.duty_cycle = ndc;
-                    updated = true;
-                }
-            }
+            Err(e) => { /* allotted wait time has lapsed */ }
         }
 
         if updated {

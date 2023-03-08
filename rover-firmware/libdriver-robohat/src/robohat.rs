@@ -100,8 +100,8 @@ impl RobohatRover {
             motor.1.set_duty_cycle(0.0)?;
         } else {
             motor.0.set_duty_cycle(0.0)?;
-            motor.1.set_duty_cycle(duty_cycle)?;
             motor.1.set_frequency(frequency)?;
+            motor.1.set_duty_cycle(duty_cycle)?;
         }
 
         Ok(())
