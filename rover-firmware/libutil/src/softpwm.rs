@@ -98,7 +98,7 @@ impl SoftPwmWorker {
 
     fn check_updates(&mut self, timeout: Duration) -> Option<(Duration, Duration)> {
         let mut updated = false;
-        for update in self.channel.recv_timeout(timeout) {
+        if let Ok(update) = self.channel.recv_timeout(timeout) {
             match update {
                 PwmUpdate::Stop => return None,
                 PwmUpdate::Frequency(nf) => {
@@ -130,7 +130,7 @@ impl SoftPwmWorker {
 
     fn run(&mut self) {
         loop {
-            if let Some((time_on, _)) = self.check_updates(self.time_on_ns) {
+            if let Some((time_on, _)) = self.check_updates(self.time_on) {
                 //                println!("Pin {} HIGH for {} ns.", self.pin, time_on);
                 self.drive(time_on, Level::High);
             } else {
