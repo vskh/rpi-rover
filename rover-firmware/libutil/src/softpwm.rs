@@ -89,15 +89,21 @@ impl SoftPwmWorker {
         }
     }
 
-    fn update_times(&mut self) {
-        let period_sec = 1.0 / self.frequency;
-        let time_on_sec = period_sec * self.duty_cycle;
+    fn calc_times(frequency: f32, duty_cycle: f32) -> (u64, u64) {
+        let period_sec = 1.0 / frequency;
+        let time_on_sec = period_sec * duty_cycle;
         let time_off_sec = period_sec - time_on_sec;
-        self.time_on = Duration::from_nanos((time_on_sec * 1000000000.0) as u64);
-        self.time_off = Duration::from_nanos((time_off_sec * 1000000000.0) as u64);
 
-        trace!("Updated PWM timing: f = {} Hz, T = {} s, duty = {}, on = {} ns, off = {} ns",
-            self.frequency, period_sec, self.duty_cycle, self.time_on.as_nanos(), self.time_off.as_nanos());
+        trace!("Updated PWM timing: f = {} Hz, T = {} s, duty = {}, on = {} s, off = {} s",
+            frequency, period_sec, duty_cycle, time_on_sec, time_off_sec);
+
+        ((time_on_sec * 1000000000.0) as u64, (time_off_sec * 1000000000.0) as u64)
+    }
+
+    fn update_times(&mut self) {
+        let (time_on_ns, time_off_ns) = SoftPwmWorker::calc_times(self.frequency, self.duty_cycle);
+        self.time_on = Duration::from_nanos(time_on_ns);
+        self.time_off = Duration::from_nanos(time_off_ns);
     }
 
     fn check_updates(&mut self, timeout: Duration) -> Option<(Duration, Duration)> {
