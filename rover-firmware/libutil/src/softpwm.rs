@@ -65,8 +65,8 @@ struct SoftPwmWorker {
     frequency: f32,
     duty_cycle: f32,
     channel: mpsc::Receiver<PwmUpdate>,
-    time_on_ns: u64,
-    time_off_ns: u64,
+    time_on: Duration,
+    time_off: Duration,
 }
 
 impl SoftPwmWorker {
@@ -83,8 +83,8 @@ impl SoftPwmWorker {
             frequency: init_frequency,
             duty_cycle: init_duty_cycle,
             channel,
-            time_on_ns: 0,
-            time_off_ns: 0,
+            time_on: Duration::ZERO,
+            time_off: Duration::ZERO,
         }
     }
 
@@ -92,13 +92,13 @@ impl SoftPwmWorker {
         let period_sec = 1.0 / self.frequency;
         let time_on_sec = period_sec * self.duty_cycle;
         let time_off_sec = period_sec - time_on_sec;
-        self.time_on_ns = (time_on_sec * 1000000000.0) as u64;
-        self.time_off_ns = (time_off_sec * 1000000000.0) as u64;
+        self.time_on = Duration::from_nanos((time_on_sec * 1000000000.0) as u64);
+        self.time_off = Duration::from_nanos((time_off_sec * 1000000000.0) as u64);
     }
 
-    fn check_updates(&mut self) -> Option<(u64, u64)> {
+    fn check_updates(&mut self, timeout: Duration) -> Option<(Duration, Duration)> {
         let mut updated = false;
-        for update in self.channel.try_iter() {
+        for update in self.channel.recv_timeout(timeout) {
             match update {
                 PwmUpdate::Stop => return None,
                 PwmUpdate::Frequency(nf) => {
@@ -116,31 +116,30 @@ impl SoftPwmWorker {
             self.update_times();
         }
 
-        Some((self.time_on_ns as u64, self.time_off_ns as u64))
+        Some((self.time_on, self.time_off))
+    }
+
+    fn drive(&mut self, duration: Duration, level: Level) {
+        if !duration.is_zero() {
+            let gpio = self.gpio.lock().unwrap();
+            gpio.write(self.pin, level);
+            drop(gpio);
+            thread::sleep(duration);
+        }
     }
 
     fn run(&mut self) {
         loop {
-            if let Some((time_on, _)) = self.check_updates() {
+            if let Some((time_on, _)) = self.check_updates(self.time_on_ns) {
                 //                println!("Pin {} HIGH for {} ns.", self.pin, time_on);
-                if time_on > 0 {
-                    let gpio = self.gpio.lock().unwrap();
-                    gpio.write(self.pin, Level::High);
-                    drop(gpio);
-                    thread::sleep(Duration::from_nanos(time_on));
-                }
+                self.drive(time_on, Level::High);
             } else {
                 break;
             }
 
-            if let Some((_, time_off)) = self.check_updates() {
+            if let Some((_, time_off)) = self.check_updates(self.time_off) {
                 //                println!("Pin {} LOW for {} ns.", self.pin, time_off);
-                if time_off > 0 {
-                    let gpio = self.gpio.lock().unwrap();
-                    gpio.write(self.pin, Level::Low);
-                    drop(gpio);
-                    thread::sleep(Duration::from_nanos(time_off));
-                }
+                self.drive(time_off, Level::Low);
             } else {
                 break;
             }
