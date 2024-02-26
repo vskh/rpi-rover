@@ -1,10 +1,9 @@
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
-use rppal::gpio::{Gpio, Level, Mode};
+use rppal::gpio::{Gpio, InputPin, IoPin, Level, Mode};
 
 use libdriver::{api, util};
 use libutil::SoftPwm;
@@ -52,36 +51,47 @@ const TILT_C_PWIDTH: i16 = 138;
 const SERVOBLASTER: &str = "/extdev/servoblaster";
 
 pub struct RobohatRover {
-    gpio: Arc<Mutex<Gpio>>,
+    sonar_pin: IoPin,
+    left_ir_pin: InputPin,
+    right_ir_pin: InputPin,
+    left_line_pin: InputPin,
+    right_line_pin: InputPin,
     left_motor: (SoftPwm, SoftPwm),
     right_motor: (SoftPwm, SoftPwm),
 }
 
 impl RobohatRover {
     pub fn new() -> Result<RobohatRover> {
-        let gpio = Arc::new(Mutex::new(Gpio::new()?));
-        {
-            let mut g = gpio.lock().unwrap();
+        let gpio = Gpio::new()?;
 
-            g.set_mode(GPIO_IR_L, Mode::Input);
-            g.set_mode(GPIO_IR_R, Mode::Input);
+        let sonar_pin = gpio.get(GPIO_SONAR)?.into_io(Mode::Output);
 
-            g.set_mode(GPIO_LINE_L, Mode::Input);
-            g.set_mode(GPIO_LINE_R, Mode::Input);
-        }
+        let left_ir_pin = gpio.get(GPIO_IR_L)?.into_input();
+        let right_ir_pin = gpio.get(GPIO_IR_R)?.into_input();
 
+        let left_line_pin = gpio.get(GPIO_LINE_L)?.into_input();
+        let right_line_pin = gpio.get(GPIO_LINE_R)?.into_input();
+
+        let pin_motor_l1 = gpio.get(GPIO_MOTOR_L1)?.into_output();
+        let pin_motor_l2 = gpio.get(GPIO_MOTOR_L2)?.into_output();
         let left_motor = (
-            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_L1, 10.0, 0.0),
-            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_L2, 10.0, 0.0),
+            SoftPwm::new(pin_motor_l1, 10.0, 0.0),
+            SoftPwm::new(pin_motor_l2, 10.0, 0.0),
         );
 
+        let pin_motor_r1 = gpio.get(GPIO_MOTOR_R1)?.into_output();
+        let pin_motor_r2 = gpio.get(GPIO_MOTOR_R2)?.into_output();
         let right_motor = (
-            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_R1, 10.0, 0.0),
-            SoftPwm::new(Arc::clone(&gpio), GPIO_MOTOR_R2, 10.0, 0.0),
+            SoftPwm::new(pin_motor_r1, 10.0, 0.0),
+            SoftPwm::new(pin_motor_r2, 10.0, 0.0),
         );
 
         Ok(RobohatRover {
-            gpio,
+            sonar_pin,
+            left_ir_pin,
+            right_ir_pin,
+            left_line_pin,
+            right_line_pin,
             left_motor,
             right_motor,
         })
@@ -222,43 +232,37 @@ impl api::Sensor for RobohatRover {
     type Error = Error;
 
     fn get_obstacles(&self) -> Result<Vec<bool>> {
-        let gpio = self.gpio.lock().unwrap();
-
         Ok(vec![
-            gpio.read(GPIO_IR_L)? == Level::Low,
-            gpio.read(GPIO_IR_R)? == Level::Low,
+            self.left_ir_pin.read() == Level::Low,
+            self.right_ir_pin.read() == Level::Low,
         ])
     }
 
     fn get_lines(&self) -> Result<Vec<bool>> {
-        let gpio = self.gpio.lock().unwrap();
-
         Ok(vec![
-            gpio.read(GPIO_LINE_L)? == Level::Low,
-            gpio.read(GPIO_LINE_R)? == Level::Low,
+            self.left_line_pin.read() == Level::Low,
+            self.right_line_pin.read() == Level::Low,
         ])
     }
 
     fn scan_distance(&mut self) -> Result<f32> {
-        let mut gpio = self.gpio.lock().unwrap();
-
-        gpio.set_mode(GPIO_SONAR, Mode::Output);
-        gpio.write(GPIO_SONAR, Level::High);
+        self.sonar_pin.set_mode(Mode::Output);
+        self.sonar_pin.set_high();
         thread::sleep(Duration::from_micros(10));
-        gpio.write(GPIO_SONAR, Level::Low);
+        self.sonar_pin.set_low();
 
-        gpio.set_mode(GPIO_SONAR, Mode::Input);
+        self.sonar_pin.set_mode(Mode::Input);
 
         let timeout = Duration::from_millis(100);
         let mut timeout_guard = SystemTime::now();
         let mut pulse_start = timeout_guard.clone();
-        while gpio.read(GPIO_SONAR)? == Level::Low && timeout_guard.elapsed()? < timeout {
+        while self.sonar_pin.read() == Level::Low && timeout_guard.elapsed()? < timeout {
             pulse_start = SystemTime::now();
         }
 
         timeout_guard = SystemTime::now();
         let mut pulse_end = timeout_guard.clone();
-        while gpio.read(GPIO_SONAR)? == Level::High && timeout_guard.elapsed()? < timeout {
+        while self.sonar_pin.read() == Level::High && timeout_guard.elapsed()? < timeout {
             pulse_end = SystemTime::now();
         }
 
