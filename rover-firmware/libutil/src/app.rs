@@ -25,8 +25,9 @@ pub fn bootstrap(config_path: &str) -> Result<Config, Box<dyn std::error::Error>
     // load settings
     let config_path = normalize_path(config_path, &current_dir);
 
-    let mut builder = Config::builder().add_source(config::File::with_name(&config_path));
-    let settings = builder.build()?;
+    let settings = Config::builder()
+        .add_source(config::File::with_name(&config_path))
+        .build()?;
 
     // initialize logging
     init_log(

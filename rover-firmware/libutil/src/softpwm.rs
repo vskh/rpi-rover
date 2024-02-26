@@ -1,11 +1,10 @@
 use std::sync::mpsc;
-use std::sync::{Arc, Mutex};
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
 use log::{error, trace};
-use rppal::gpio::{Gpio, Level, Mode};
+use rppal::gpio::{Level, OutputPin};
 use thiserror::Error as LibError;
 
 enum PwmUpdate {
@@ -28,19 +27,15 @@ pub struct SoftPwm {
 }
 
 impl SoftPwm {
-    pub fn new(gpio: Arc<Mutex<Gpio>>, pin: u8, frequency: f32, duty_cycle: f32) -> SoftPwm {
-        {
-            let mut g = gpio.lock().unwrap();
-            g.set_mode(pin, Mode::Output);
-            g.write(pin, Level::Low);
-        }
+    pub fn new(mut pin: OutputPin, frequency: f32, duty_cycle: f32) -> SoftPwm {
+        pin.set_low();
 
         let (tx, rx) = mpsc::channel();
 
         SoftPwm {
             channel: tx,
             worker: Some(thread::spawn(move || {
-                let mut worker = SoftPwmWorker::new(gpio, pin, frequency, duty_cycle, rx);
+                let mut worker = SoftPwmWorker::new(pin, frequency, duty_cycle, rx);
 
                 worker.run();
             })),
@@ -61,8 +56,7 @@ impl SoftPwm {
 }
 
 struct SoftPwmWorker {
-    gpio: Arc<Mutex<Gpio>>,
-    pin: u8,
+    pin: OutputPin,
     frequency: f32,
     duty_cycle: f32,
     channel: mpsc::Receiver<PwmUpdate>,
@@ -72,8 +66,7 @@ struct SoftPwmWorker {
 
 impl SoftPwmWorker {
     fn new(
-        gpio: Arc<Mutex<Gpio>>,
-        pin: u8,
+        pin: OutputPin,
         init_frequency: f32,
         init_duty_cycle: f32,
         channel: mpsc::Receiver<PwmUpdate>,
@@ -81,7 +74,6 @@ impl SoftPwmWorker {
         let (time_on_ns, time_off_ns) = SoftPwmWorker::calc_times(init_frequency, init_duty_cycle);
 
         SoftPwmWorker {
-            gpio,
             pin,
             frequency: init_frequency,
             duty_cycle: init_duty_cycle,
@@ -123,7 +115,7 @@ impl SoftPwmWorker {
                         updated = true;
                     }
                 }
-            Err(e) => { /* allotted wait time has lapsed */ }
+            Err(_e) => { /* allotted wait time has lapsed */ }
         }
 
         if updated {
@@ -135,9 +127,7 @@ impl SoftPwmWorker {
 
     fn drive(&mut self, duration: Duration, level: Level) {
         if !duration.is_zero() {
-            let gpio = self.gpio.lock().unwrap();
-            gpio.write(self.pin, level);
-            drop(gpio);
+            self.pin.write(level);
             thread::sleep(duration);
         }
     }
