@@ -2,11 +2,11 @@
 name = "libdriver"
 version = "0.1.0"
 authors = ["Vadym S. Khondar <vadym@khondar.name>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-futures = "0.3.1"
-tokio = { version = "0.2.21", features = ["blocking"] }
-async-trait = "0.1.33"
-anyhow = "1.0.31"
-thiserror = "1.0.19"
+futures = "0.3.30"
+tokio = { version = "1.36.0", features = ["default", "rt"] }
+async-trait = "0.1.77"
+anyhow = "1.0.80"
+thiserror = "1.0.57"
