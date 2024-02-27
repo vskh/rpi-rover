@@ -1,4 +1,4 @@
-use serde_derive::{Serialize, Deserialize};
+use serde::{Serialize, Deserialize};
 use strum_macros::Display as EnumDisplay;
 
 #[derive(Debug, EnumDisplay, Serialize, Deserialize)]

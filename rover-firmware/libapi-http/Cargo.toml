@@ -2,10 +2,9 @@
 name = "libapi-http"
 version = "0.1.0"
 authors = ["Vadym S. Khondar <vadym@khondar.name>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-serde = "1.0.114"
-serde_derive = "1.0.114"
-strum = "0.19.1"
-strum_macros = "0.19.1"
+serde = { version = "1.0.197", features = ["derive"] }
+strum = "0.26.1"
+strum_macros = "0.26.1"
