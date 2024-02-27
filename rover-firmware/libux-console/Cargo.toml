@@ -2,13 +2,13 @@
 name = "libux-console"
 version = "0.1.0"
 authors = ["Vadym S. Khondar <vadym@khondar.name>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.31"
-termion = "1.5.1"
+anyhow = "1.0.80"
+termion = "3.0.0"
 libdriver = { path = "../libdriver" }
 libdriver-robohat = { path = "../libdriver-robohat" }
 
