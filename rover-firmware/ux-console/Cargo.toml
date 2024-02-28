@@ -2,12 +2,12 @@
 name = "ux-console"
 version = "0.1.0"
 authors = ["Vadym S. Khondar <vadym@khondar.name>"]
-edition = "2018"
+edition = "2021"
 description = "Raspberry Pi Rover command-line control interface."
 
 [dependencies]
-clap = "2.33.1"
-tokio = { version = "0.2.6", features = ["dns", "macros", "rt-core", "tcp"] }
+clap = {  version = "4.5.1", features = ["cargo"] }
+tokio = { version = "1.36.0", features = ["default", "net", "macros", "rt-multi-thread"] }
 libdriver = { path="../libdriver" }
 libdriver-robohat = { path = "../libdriver-robohat" }
 libapi-net = { path = "../libapi-net" }
