@@ -20,11 +20,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let settings = bootstrap(CONFIG_FILE)?;
 
-    let listen_addr = settings.get_str("listen_address")?;
+    let listen_addr = settings.get_string("listen_address")?;
 
     info!("Starting api-http on {}...", listen_addr);
 
-    let rover_addr = settings.get_str("rover_address")?;
+    let rover_addr = settings.get_string("rover_address")?;
 
     let state = web::Data::new(app::State {
         rover_client: Mutex::new(Client::new(rover_addr).await?),

@@ -2,15 +2,15 @@
 name = "api-http"
 version = "0.1.0"
 authors = ["Vadym S. Khondar <vadym@khondar.name>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-futures = "0.3.1"
-config = "0.9"
-log = "0.4"
-actix-web = "2.0"
-actix-rt = "1.1.1"
-serde = "1.0.114"
+futures = "0.3.30"
+config = "0.14.0"
+log = "0.4.21"
+actix-web = "4.5.1"
+actix-rt = "2.9.0"
+serde = "1.0.197"
 libapi-http = { path = "../libapi-http" }
 libapi-net = { path = "../libapi-net" }
 libdriver = { path = "../libdriver" }
