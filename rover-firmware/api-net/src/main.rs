@@ -14,7 +14,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let settings = bootstrap(CONFIG_FILE)?;
 
-    let listen_addr = settings.get_str("listen_address")?;
+    let listen_addr = settings.get_string("listen_address")?;
 
     info!("Starting api-net on {}...", listen_addr);
 
