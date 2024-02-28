@@ -1,4 +1,4 @@
-use actix_web::{get, Responder, web};
+use actix_web::{get, web, Responder};
 use log::{debug, trace};
 
 use libdriver::api::AsyncSensor;

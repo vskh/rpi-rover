@@ -88,10 +88,19 @@ impl SoftPwmWorker {
         let time_on_sec = period_sec * duty_cycle;
         let time_off_sec = period_sec - time_on_sec;
 
-        trace!("Updated PWM timing: f = {} Hz, T = {} s, duty = {}, on = {} s, off = {} s",
-            frequency, period_sec, duty_cycle, time_on_sec, time_off_sec);
+        trace!(
+            "Updated PWM timing: f = {} Hz, T = {} s, duty = {}, on = {} s, off = {} s",
+            frequency,
+            period_sec,
+            duty_cycle,
+            time_on_sec,
+            time_off_sec
+        );
 
-        ((time_on_sec * 1000000000.0) as u64, (time_off_sec * 1000000000.0) as u64)
+        (
+            (time_on_sec * 1000000000.0) as u64,
+            (time_off_sec * 1000000000.0) as u64,
+        )
     }
 
     fn update_times(&mut self) {
@@ -103,18 +112,17 @@ impl SoftPwmWorker {
     fn check_updates(&mut self, timeout: Duration) -> Option<(Duration, Duration)> {
         let mut updated = false;
         match self.channel.recv_timeout(timeout) {
-            Ok(update) =>
-                match update {
-                    PwmUpdate::Stop => return None,
-                    PwmUpdate::Frequency(nf) => {
-                        self.frequency = nf;
-                        updated = true;
-                    }
-                    PwmUpdate::DutyCycle(ndc) => {
-                        self.duty_cycle = ndc;
-                        updated = true;
-                    }
+            Ok(update) => match update {
+                PwmUpdate::Stop => return None,
+                PwmUpdate::Frequency(nf) => {
+                    self.frequency = nf;
+                    updated = true;
                 }
+                PwmUpdate::DutyCycle(ndc) => {
+                    self.duty_cycle = ndc;
+                    updated = true;
+                }
+            },
             Err(_e) => { /* allotted wait time has lapsed */ }
         }
 
