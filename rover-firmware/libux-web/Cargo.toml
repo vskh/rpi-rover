@@ -2,25 +2,17 @@
 name = "libux-web"
 version = "0.1.0"
 authors = ["Vadym S. Khondar <vadym@khondar.name>"]
-edition = "2018"
+edition = "2021"
 description = "Web user experience for Rover control center."
 repository = "https://github.com/vskh/rpi-rover"
 license = "MIT"
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
-anyhow = "1.0.79"
-log = "0.4.11"
-serde = "1.0.114"
-stylist = { version = "0.12.0", features = ["yew_integration"] }
-wasm-bindgen = "0.2"
+anyhow = "1.0.80"
+log = "0.4.21"
+serde = "1.0.197"
+stylist = { version = "0.13.0", features = ["yew_integration"] }
 wasm-logger = "0.2.0"
-wee_alloc = { version = "0.4.5", optional = true }
-yew = "0.20.0"
-yewtil = "0.4.0"
+yew = { version = "0.21.0", features = ["csr"] }
+#yewtil = "0.4.0"
 libapi-http = { path = "../libapi-http" }
-
-[features]
-default = ["wee_alloc"]
