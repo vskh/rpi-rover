@@ -1,15 +1,104 @@
+use log::{debug, trace};
+use stylist::yew::use_style;
 use yew::prelude::*;
+use crate::components::sensors_data::SensorsData;
+
+const REQUEST_SENSORS_TASK: &str = "task/timeout/request_sensors";
+const GET_DISTANCE_TASK: &str = "task/sense/distance";
+const GET_LINES_TASK: &str = "task/sense/lines";
+const GET_OBSTACLES_TASK: &str = "task/sense/obstacles";
+
+const MOVE_TASK: &str = "task/move";
+const LOOK_TASK: &str = "task/look";
 
 #[function_component(App)]
 pub fn app() -> Html {
+    trace!("Render App");
+
+    let style = use_style!(
+        r"
+            width: 100%;
+            height: 100%;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+
+            .error {
+                color: red;
+            }
+
+            .controls {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+
+                box-sizing: border-box;
+                width: 100%;
+                padding: 10px 20px;
+                position: fixed;
+                bottom: 0;
+            }
+
+            .controls>div {
+                width: 50%;
+
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .controls>div>h5 {
+                margin: 10px auto;
+                text-align: center;
+            }
+        "
+    );
+
+
+
     html! {
-        <h1>{ "Hello World" }</h1>
+        <div class={style}>
+            <h1>{ "Hello World" }</h1>
+                <SensorsData
+                    left_obstacle={true}
+                    right_obstacle={false}
+                    distance={100.998}
+                    messages={vec![String::from("Extra message")]} />
+//                 <div class="controls">
+//                     <div>
+//                         <h5>{"Sensor Direction"}</h5>
+//                         {self.current_sensor_direction()}
+//                         <DirectionControl
+//                             controller_id="sensor"
+//                             control_mode={DirectionControlMode::Multidirectional}
+//                             module_mode={DirectionModuleMode::Cumulative}
+//                             on_direction_change=self.link.callback(|dir| Msg::SensorDirectionUpdate(dir))
+//                             size={50} />
+//                     </div>
+//                     <div>
+//                         <h5>{"Move Control"}</h5>
+//                         {self.current_move_direction()}
+//                         <DirectionControl
+//                             controller_id="platform"
+//                             on_direction_change=self.link.callback(|dir| Msg::MoveDirectionUpdate(dir))
+//                             size={50}
+//                             x_step={10}
+//                             y_step={10}
+//                             xinc_title="↻"
+//                             xdec_title="↺"
+//                             has_reset={true} />
+//                     </div>
+//                 </div>
+            </div>
     }
 }
 
 // use anyhow::{anyhow, Error};
 // use css_in_rust::Style;
-// use log::{debug, trace};
+
 // use std::collections::hash_map::HashMap;
 // use std::time::Duration;
 // use yew::services::timeout::TimeoutService;
@@ -50,13 +139,7 @@ pub fn app() -> Html {
 //     pub obstacles_error: Option<Error>,
 // }
 //
-// const REQUEST_SENSORS_TASK: &str = "task/timeout/request_sensors";
-// const GET_DISTANCE_TASK: &str = "task/sense/distance";
-// const GET_LINES_TASK: &str = "task/sense/lines";
-// const GET_OBSTACLES_TASK: &str = "task/sense/obstacles";
-//
-// const MOVE_TASK: &str = "task/move";
-// const LOOK_TASK: &str = "task/look";
+
 //
 // pub struct App {
 //     link: ComponentLink<Self>,

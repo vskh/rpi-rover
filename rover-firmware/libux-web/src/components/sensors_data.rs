@@ -1,6 +1,5 @@
-use css_in_rust::Style;
-use yew::{html, Component, Properties, ComponentLink, Html, ShouldRender};
-use yewtil::NeqAssign;
+use stylist::yew::use_style;
+use yew::{function_component, html, Html, Properties};
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct SensorsDataProps {
@@ -14,81 +13,50 @@ pub struct SensorsDataProps {
     pub distance: f32,
 
     #[prop_or(vec![])]
-    pub messages: Vec<String>
+    pub messages: Vec<String>,
 }
 
-pub struct SensorsData {
-    link: ComponentLink<Self>,
-    props: SensorsDataProps,
-    style: Style,
-}
+#[function_component(SensorsData)]
+pub fn sensors_data(props: &SensorsDataProps) -> Html {
+    let style = use_style!(
+        r"
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
 
-impl Component for SensorsData {
-    type Message = ();
-    type Properties = SensorsDataProps;
+            .main {
+                dispay: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let style = Style::create(
-            "SensorsData",
-            r#"
-                width: 100%;
-                display: flex;
-                flex-direction: row;
-                justify-content: space-between;
-                align-items: center;
+            .distance {
+                flex-grow: 1;
+                text-align: center;
+            }
 
-                .main {
-                    dispay: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                }
+            .obstacle {
+                min-width: 30px;
+                text-align: center;
+                flex-grow: 0;
+            }
+        "
+    );
 
-                .distance {
-                    flex-grow: 1;
-                    text-align: center;
-                }
-
-                .obstacle {
-                    min-width: 30px;
-                    text-align: center;
-                    flex-grow: 0;
-                }
-            "#)
-            .unwrap();
-
-        SensorsData {
-            link,
-            props,
-            style
-        }
-    }
-
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
-        false
-    }
-
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        let should_render = self.props.neq_assign(props);
-
-        should_render
-    }
-
-    fn view(&self) -> Html {
-        html! {
-            <div class=self.style.clone()>
-                <div class="obstacle">{format!("{}", if self.props.left_obstacle { ">>>" } else { "|" })}</div>
-                <div class="main">
-                    <div class="distance">{format!("{} mm", self.props.distance)}</div>
-                    <div class="error">
-                        {
-                            for self.props.messages.iter().map(|m| { html! { <div>{m}</div> } })
-                        }
-                    </div>
+    html! {
+        <div class={style}>
+            <div class="obstacle">{format!("{}", if props.left_obstacle { ">>>" } else { "|" })}</div>
+            <div class="main">
+                <div class="distance">{format!("{} mm", props.distance)}</div>
+                <div class="error">
+                    {
+                        for props.messages.iter().map(|m| { html! { <div>{m}</div> } })
+                    }
                 </div>
-                <div class="obstacle">{format!("{}", if self.props.right_obstacle { "<<<" } else { "|" })}</div>
             </div>
-        }
+            <div class="obstacle">{format!("{}", if props.right_obstacle { "<<<" } else { "|" })}</div>
+        </div>
     }
 }
-
-

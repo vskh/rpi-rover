@@ -4,7 +4,7 @@ use yew::prelude::*;
 use crate::app::App;
 
 mod app;
-// mod components;
+mod components;
 // mod services;
 
 fn main() {
