@@ -1,6 +1,7 @@
 use log::{debug, trace};
 use stylist::yew::use_style;
 use yew::prelude::*;
+use crate::components::direction_control::{DirectionControl, DirectionControlMode, DirectionModuleMode};
 use crate::components::sensors_data::SensorsData;
 
 const REQUEST_SENSORS_TASK: &str = "task/timeout/request_sensors";
@@ -13,7 +14,7 @@ const LOOK_TASK: &str = "task/look";
 
 #[function_component(App)]
 pub fn app() -> Html {
-    trace!("Render App");
+    trace!("[App] Rendering");
 
     let style = use_style!(
         r"
@@ -57,8 +58,6 @@ pub fn app() -> Html {
         "
     );
 
-
-
     html! {
         <div class={style}>
             <h1>{ "Hello World" }</h1>
@@ -67,31 +66,31 @@ pub fn app() -> Html {
                     right_obstacle={false}
                     distance={100.998}
                     messages={vec![String::from("Extra message")]} />
-//                 <div class="controls">
-//                     <div>
-//                         <h5>{"Sensor Direction"}</h5>
+                <div class="controls">
+                    <div>
+                        <h5>{"Sensor Direction"}</h5>
 //                         {self.current_sensor_direction()}
-//                         <DirectionControl
-//                             controller_id="sensor"
-//                             control_mode={DirectionControlMode::Multidirectional}
-//                             module_mode={DirectionModuleMode::Cumulative}
+                        <DirectionControl
+                            controller_id="sensor"
+                            control_mode={DirectionControlMode::Multidirectional}
+                            module_mode={DirectionModuleMode::Cumulative}
 //                             on_direction_change=self.link.callback(|dir| Msg::SensorDirectionUpdate(dir))
-//                             size={50} />
-//                     </div>
-//                     <div>
-//                         <h5>{"Move Control"}</h5>
+                            size={50} />
+                    </div>
+                    <div>
+                        <h5>{"Move Control"}</h5>
 //                         {self.current_move_direction()}
-//                         <DirectionControl
-//                             controller_id="platform"
+                        <DirectionControl
+                            controller_id="platform"
 //                             on_direction_change=self.link.callback(|dir| Msg::MoveDirectionUpdate(dir))
-//                             size={50}
-//                             x_step={10}
-//                             y_step={10}
-//                             xinc_title="↻"
-//                             xdec_title="↺"
-//                             has_reset={true} />
-//                     </div>
-//                 </div>
+                            size={50}
+                            x_step={10}
+                            y_step={10}
+                            xinc_title="↻"
+                            xdec_title="↺"
+                            has_reset={true} />
+                    </div>
+                </div>
             </div>
     }
 }

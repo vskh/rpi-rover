@@ -1,7 +1,9 @@
 use log::trace;
-use css_in_rust::Style;
-use yew::{html, Component, Properties, ComponentLink, Html, ShouldRender, Callback};
-use yewtil::NeqAssign;
+use stylist::yew::use_style;
+use yew::{
+    function_component, html, use_state, AttrValue, Callback, Event, Html, MouseEvent, Properties,
+    UseStateHandle,
+};
 
 /**
  * Designates how control determines where direction vector is targeted.
@@ -18,7 +20,7 @@ pub enum DirectionControlMode {
      * Each coordinate of direction vector is independent and direction is determined by all
      * of them.
      */
-    Multidirectional
+    Multidirectional,
 }
 
 /**
@@ -44,34 +46,14 @@ pub enum DirectionModuleMode {
      * Single press of the button in the opposite direction resets corresponding direction vector
      * coordinate to 0.
      */
-    Mixed
-}
-
-pub enum Msg {
-    YInc,
-    XDec,
-    XInc,
-    YDec,
-    Reset
-}
-
-pub struct State {
-    /* Direction vector coordinates */
-    x: i32,
-    y: i32
-}
-
-pub struct DirectionControl {
-    link: ComponentLink<Self>,
-    props: DirectionControlProps,
-    state: State,
-    style: Style
+    Mixed,
 }
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct DirectionControlProps {
-    pub controller_id: String,
+    pub controller_id: AttrValue,
 
+    #[prop_or_default]
     pub on_direction_change: Callback<(i32, i32)>,
 
     #[prop_or(100)]
@@ -92,225 +74,245 @@ pub struct DirectionControlProps {
     #[prop_or(1)]
     pub y_step: i32,
 
-    #[prop_or("↑".to_string())]
-    pub yinc_title: String,
+    #[prop_or(AttrValue::from("↑"))]
+    pub yinc_title: AttrValue,
 
-    #[prop_or("↓".to_string())]
-    pub ydec_title: String,
+    #[prop_or(AttrValue::from("↓"))]
+    pub ydec_title: AttrValue,
 
-    #[prop_or("→".to_string())]
-    pub xinc_title: String,
+    #[prop_or(AttrValue::from("→"))]
+    pub xinc_title: AttrValue,
 
-    #[prop_or("←".to_string())]
-    pub xdec_title: String,
+    #[prop_or(AttrValue::from("←"))]
+    pub xdec_title: AttrValue,
 
-    #[prop_or("■".to_string())]
-    pub reset_title: String
+    #[prop_or(AttrValue::from("■"))]
+    pub reset_title: AttrValue,
 }
 
-impl DirectionControl {
-    fn create_styles(props: &DirectionControlProps) -> Style {
-        Style::create(
-            "DirectionControl",
-            format!(r#"
-                width: {c_h}px;
-                height: {c_w}px;
+#[function_component(DirectionControl)]
+pub fn direction_control(props: &DirectionControlProps) -> Html {
+    fn create_control_cb(
+        var: UseStateHandle<i32>,
+        dvar: UseStateHandle<i32>,
+        step: i32,
+        increment: bool,
+        control_mode: DirectionControlMode,
+        module_mode: DirectionModuleMode,
+        on_change: impl Fn(i32, i32),
+    ) -> impl Fn(MouseEvent) {
+        move |_| {
+            if control_mode == DirectionControlMode::Unidirectional {
+                dvar.set(0);
+            }
 
-                display: flex;
-                flex-direction: column;
-
-                .row {{
-                    display: flex;
-                    flex-direction: row;
-                    justify-content: space-between;
-                }}
-
-                .row-odd {{
-                    justify-content: space-around;
-                }}
-
-                button {{
-                    line-height: 0;
-                    padding: 0;
-                    margin: 3px;
-                    height: {h}px;
-                    width: {w}px;
-                }}
-            "#,
-                    c_h = (props.size + 6) * 3,
-                    c_w = (props.size + 6) * 3,
-                    h = props.size,
-                    w = props.size
-            ),
-        )
-            .unwrap()
-    }
-
-    fn update_styles(&mut self) {
-        self.style = Self::create_styles(&self.props);
-    }
-}
-
-impl Component for DirectionControl {
-    type Message = Msg;
-    type Properties = DirectionControlProps;
-
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let style = Self::create_styles(&props);
-        let state = State { x: 0, y: 0 };
-        DirectionControl {
-            link,
-            style,
-            props,
-            state
-        }
-    }
-
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
-        match msg {
-            Msg::Reset => {
-                trace!("[{}] Reset", self.props.controller_id);
-
-                self.state.x = 0;
-                self.state.y = 0;
-            },
-            Msg::XDec => {
-                trace!("[{}] XDec", self.props.controller_id);
-
-                if self.props.control_mode == DirectionControlMode::Unidirectional {
-                    self.state.y = 0;
+            match module_mode {
+                DirectionModuleMode::Immediate => {
+                    if increment {
+                        var.set(step);
+                    } else {
+                        var.set(-step);
+                    }
                 }
-
-                match self.props.module_mode {
-                    DirectionModuleMode::Immediate => {
-                        self.state.x = - self.props.x_step;
-                    },
-                    DirectionModuleMode::Mixed => {
-                        if self.state.x > 0 {
-                            self.state.x = 0;
+                DirectionModuleMode::Mixed => {
+                    if (!increment && *var > 0) || (increment && *var < 0) {
+                        var.set(0);
+                    } else {
+                        var.set(if increment {
+                            var.saturating_add(step)
                         } else {
-                            self.state.x = self.state.x.saturating_sub(self.props.x_step);
-                        }
-                    }
-                    DirectionModuleMode::Cumulative => {
-                        self.state.x = self.state.x.saturating_sub(self.props.x_step);
+                            var.saturating_sub(step)
+                        });
                     }
                 }
-            },
-            Msg::XInc => {
-                trace!("[{}] XInc", self.props.controller_id);
-
-                if self.props.control_mode == DirectionControlMode::Unidirectional {
-                    self.state.y = 0;
-                }
-
-                match self.props.module_mode {
-                    DirectionModuleMode::Immediate => {
-                        self.state.x = self.props.x_step
-                    },
-                    DirectionModuleMode::Mixed => {
-                        if self.state.x < 0 {
-                            self.state.x = 0
-                        } else {
-                            self.state.x = self.state.x.saturating_add(self.props.x_step);
-                        }
-                    }
-                    DirectionModuleMode::Cumulative => {
-                        self.state.x = self.state.x.saturating_add(self.props.x_step);
-                    }
-                }
-            },
-            Msg::YDec => {
-                trace!("[{}] YDec", self.props.controller_id);
-
-                if self.props.control_mode == DirectionControlMode::Unidirectional {
-                    self.state.x = 0;
-                }
-
-                match self.props.module_mode {
-                    DirectionModuleMode::Immediate => {
-                        self.state.y = - self.props.y_step;
-                    },
-                    DirectionModuleMode::Mixed =>
-                        if self.state.y > 0 {
-                            self.state.y = 0;
-                        } else {
-                            self.state.y = self.state.y.saturating_sub(self.props.y_step);
-                        }
-                    DirectionModuleMode::Cumulative => {
-                        self.state.y = self.state.y.saturating_sub(self.props.y_step);
-                    }
-                }
-            },
-            Msg::YInc => {
-                trace!("[{}] YInc", self.props.controller_id);
-
-                if self.props.control_mode == DirectionControlMode::Unidirectional {
-                    self.state.x = 0;
-                }
-
-                match self.props.module_mode {
-                    DirectionModuleMode::Immediate => {
-                        self.state.y = - self.props.y_step;
-                    },
-                    DirectionModuleMode::Mixed =>
-                        if self.state.y < 0 {
-                            self.state.y = 0;
-                        } else {
-                            self.state.y = self.state.y.saturating_add(self.props.y_step);
-                        }
-                    DirectionModuleMode::Cumulative => {
-                        self.state.y = self.state.y.saturating_add(self.props.y_step);
-                    }
+                DirectionModuleMode::Cumulative => {
+                    var.set(if increment {
+                        var.saturating_add(step)
+                    } else {
+                        var.saturating_sub(step)
+                    });
                 }
             }
+
+            // can't call on_direction_change cb directly here because that would require
+            // knowledge of order between controlled variable and dependent variable (e.g. (x, y) or (y, x))
+            on_change(*var, *dvar)
         }
-
-        trace!(
-            "[{}] Updated direction vector: ({}, {})",
-            self.props.controller_id,
-            self.state.x,
-            self.state.y
-        );
-
-        self.props.on_direction_change.emit((self.state.x, self.state.y));
-
-        false
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        let should_render = self.props.neq_assign(props);
-        if should_render {
-            self.update_styles();
+    let class = use_style!(
+        r"
+            width: ${c_h}px;
+            height: ${c_w}px;
 
-            trace!("[{}] Re-rendering.", self.props.controller_id);
+            display: flex;
+            flex-direction: column;
+
+            .row {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+            }
+
+            .row-odd {
+                justify-content: space-around;
+            }
+
+            button {
+                line-height: 0;
+                padding: 0;
+                margin: 3px;
+                height: ${h}px;
+                width: ${w}px;
+            }
+        ",
+        c_h = (props.size + 6) * 3,
+        c_w = (props.size + 6) * 3,
+        h = props.size,
+        w = props.size
+    );
+
+    let x = use_state(|| 0);
+    let y = use_state(|| 0);
+
+    trace!(
+        "[DirectionControl(#{})] Rendering: ({}, {})",
+        props.controller_id,
+        *x,
+        *y
+    );
+
+    let xdec = {
+        let on_direction_change = props.on_direction_change.clone();
+        let controller_id = props.controller_id.clone();
+
+        create_control_cb(
+            x.clone(),
+            y.clone(),
+            props.x_step,
+            false,
+            props.control_mode,
+            props.module_mode,
+            move |x, y| {
+                trace!(
+                    "[DirectionControl(#{})] Decrementing X: ({}, {})",
+                    controller_id,
+                    x,
+                    y
+                );
+                on_direction_change.emit((x, y));
+            },
+        )
+    };
+    let xinc = {
+        let on_direction_change = props.on_direction_change.clone();
+        let controller_id = props.controller_id.clone();
+
+        create_control_cb(
+            x.clone(),
+            y.clone(),
+            props.x_step,
+            true,
+            props.control_mode,
+            props.module_mode,
+            move |x, y| {
+                trace!(
+                    "[DirectionControl(#{})] Incrementing X: ({}, {})",
+                    controller_id,
+                    x,
+                    y
+                );
+                on_direction_change.emit((x, y));
+            },
+        )
+    };
+
+    let ydec = {
+        let on_direction_change = props.on_direction_change.clone();
+        let controller_id = props.controller_id.clone();
+
+        create_control_cb(
+            y.clone(),
+            x.clone(),
+            props.x_step,
+            false,
+            props.control_mode,
+            props.module_mode,
+            move |y, x| {
+                trace!(
+                    "[DirectionControl(#{})] Decrementing Y: ({}, {})",
+                    controller_id,
+                    x,
+                    y
+                );
+                on_direction_change.emit((x, y));
+            },
+        )
+    };
+    let yinc = {
+        let on_direction_change = props.on_direction_change.clone();
+        let controller_id = props.controller_id.clone();
+
+        create_control_cb(
+            y.clone(),
+            x.clone(),
+            props.x_step,
+            true,
+            props.control_mode,
+            props.module_mode,
+            move |x, y| {
+                trace!(
+                    "[DirectionControl(#{})] Incrementing Y: ({}, {})",
+                    controller_id,
+                    x,
+                    y
+                );
+                on_direction_change.emit((y, x));
+            },
+        )
+    };
+
+    let reset = {
+        let x = x.clone();
+        let y = y.clone();
+        let on_direction_change = props.on_direction_change.clone();
+        let controller_id = props.controller_id.clone();
+
+        move |_| {
+            trace!(
+                "[DirectionControl(#{})] Resetting: ({}, {})",
+                controller_id,
+                *x,
+                *y
+            );
+
+            x.set(0);
+            y.set(0);
         }
-        should_render
-    }
+    };
 
-    fn view(&self) -> Html {
-        html! {
-            <div class=self.style.clone()>
+    html! {
+            <div class={class}>
                 <div class="row row-odd">
-                    <button onclick=self.link.callback(|_| Msg::YInc)>{&self.props.yinc_title}</button>
+                    <button onclick={yinc}>{&props.yinc_title}</button>
                 </div>
                 <div class="row">
-                    <button onclick=self.link.callback(|_| Msg::XDec)>{&self.props.xdec_title}</button>
+                    <button onclick={xdec}>{&props.xdec_title}</button>
                     {
-                        if self.props.has_reset {
+                        if props.has_reset {
                             html!{
-                                <button onclick=self.link.callback(|_| Msg::Reset)>{&self.props.reset_title}</button>
+                                <button onclick={reset}>{&props.reset_title}</button>
                             }
                         } else {
                             html!{}
                         }
                     }
-                    <button onclick=self.link.callback(|_| Msg::XInc)>{&self.props.xinc_title}</button>
+                    <button onclick={xinc}>{&props.xinc_title}</button>
                 </div>
                 <div class="row row-odd">
-                    <button onclick=self.link.callback(|_| Msg::YDec)>{&self.props.ydec_title}</button>
+                    <button onclick={ydec}>{&props.ydec_title}</button>
                 </div>
             </div>
         }
-    }
 }
+
