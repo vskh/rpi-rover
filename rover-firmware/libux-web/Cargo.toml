@@ -9,10 +9,13 @@ license = "MIT"
 
 [dependencies]
 anyhow = "1.0.80"
+futures = "0.3.30"
 log = "0.4.21"
+gloo-net = { version = "0.5.0", features = ["http"] }
 serde = "1.0.197"
 stylist = { version = "0.13.0", features = ["yew_integration"] }
 wasm-logger = "0.2.0"
+web-sys = { version = "0.3.68", features = ["AbortController"] }
 yew = { version = "0.21.0", features = ["csr"] }
-#yewtil = "0.4.0"
+
 libapi-http = { path = "../libapi-http" }

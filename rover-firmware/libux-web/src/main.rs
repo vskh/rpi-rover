@@ -5,7 +5,7 @@ use crate::app::App;
 
 mod app;
 mod components;
-// mod services;
+mod services;
 
 fn main() {
     wasm_logger::init(wasm_logger::Config::new(Level::Trace));

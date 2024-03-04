@@ -1,7 +1,7 @@
 use log::trace;
 use stylist::yew::use_style;
 use yew::{
-    function_component, html, use_state, AttrValue, Callback, Event, Html, MouseEvent, Properties,
+    function_component, html, use_state, AttrValue, Callback, Html, MouseEvent, Properties,
     UseStateHandle,
 };
 
@@ -288,6 +288,8 @@ pub fn direction_control(props: &DirectionControlProps) -> Html {
 
             x.set(0);
             y.set(0);
+
+            on_direction_change.emit((0, 0));
         }
     };
 

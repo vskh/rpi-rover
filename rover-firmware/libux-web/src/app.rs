@@ -1,21 +1,150 @@
+use std::rc::Rc;
+
+use anyhow::{anyhow, Error};
 use log::{debug, trace};
 use stylist::yew::use_style;
 use yew::prelude::*;
-use crate::components::direction_control::{DirectionControl, DirectionControlMode, DirectionModuleMode};
+
+use libapi_http::api::MoveType;
+
+use crate::components::direction_control::{
+    DirectionControl, DirectionControlMode, DirectionModuleMode,
+};
 use crate::components::sensors_data::SensorsData;
+use crate::services::rover_service::RoverService;
 
-const REQUEST_SENSORS_TASK: &str = "task/timeout/request_sensors";
-const GET_DISTANCE_TASK: &str = "task/sense/distance";
-const GET_LINES_TASK: &str = "task/sense/lines";
-const GET_OBSTACLES_TASK: &str = "task/sense/obstacles";
+#[derive(Debug)]
+pub enum AppAction {
+    RequestSensors,
+    SensorDirectionUpdate((i32, i32)),
+    SensorDirectionUpdateError(Error, (i32, i32)),
+    MoveDirectionUpdate((i32, i32)),
+    MoveDirectionUpdateError(Error, (i32, i32)),
+    DistanceUpdate(f32),
+    DistanceUpdateError(Error),
+    ObstaclesUpdate(Vec<bool>),
+    ObstaclesUpdateError(Error),
+    LinesUpdate(Vec<bool>),
+    LinesUpdateError(Error),
+}
 
-const MOVE_TASK: &str = "task/move";
-const LOOK_TASK: &str = "task/look";
+#[derive(Default)]
+pub struct AppState {
+    pub sensor_direction: (i32, i32),
+    pub sensor_direction_error: Rc<Option<Error>>,
+    pub speed: u8,
+    pub move_type: Rc<Option<MoveType>>,
+    pub distance: f32,
+    pub distance_error: Rc<Option<Error>>,
+    pub lines: Rc<Vec<bool>>,
+    pub lines_error: Rc<Option<Error>>,
+    pub obstacles: Rc<Vec<bool>>,
+    pub obstacles_error: Rc<Option<Error>>,
+}
+
+impl AppState {
+    fn calc_move_type(move_direction: (i32, i32)) -> Option<MoveType> {
+        if move_direction.1 > 0 {
+            Some(MoveType::Forward)
+        } else if move_direction.1 < 0 {
+            Some(MoveType::Backward)
+        } else if move_direction.0 > 0 {
+            Some(MoveType::CWSpin)
+        } else if move_direction.0 < 0 {
+            Some(MoveType::CCWSpin)
+        } else {
+            None
+        }
+    }
+
+    fn calc_speed(move_direction: (i32, i32)) -> u8 {
+        let unscaled_speed = if move_direction.0 != 0 {
+            move_direction.0
+        } else if move_direction.1 != 0 {
+            move_direction.1
+        } else {
+            0
+        };
+
+        ((unscaled_speed.abs() as f64 / i32::MAX as f64) * (u8::MAX as f64)).ceil() as u8
+    }
+
+    fn move_type_repr(&self) -> char {
+        match &*self.move_type {
+            Some(MoveType::Forward) => '↑',
+            Some(MoveType::Backward) => '↓',
+            Some(MoveType::CWSpin) => '↻',
+            Some(MoveType::CCWSpin) =>  '↺',
+            None => '■'
+        }
+    }
+}
+
+impl Reducible for AppState {
+    type Action = AppAction;
+
+    fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
+        let sensor_direction = match action {
+            _ => self.sensor_direction
+        };
+        let sensor_direction_error = match action {
+            _ => self.sensor_direction_error.clone()
+        };
+
+        let speed = match action {
+            AppAction::MoveDirectionUpdate(dir) => AppState::calc_speed(dir),
+            _ => self.speed
+        };
+
+        let move_type = match action {
+            AppAction::MoveDirectionUpdate(dir) => Rc::new(AppState::calc_move_type(dir)),
+            _ => self.move_type.clone()
+        };
+
+        let distance = match action {
+            _ => self.distance
+        };
+
+        let distance_error = match action {
+            _ => self.distance_error.clone()
+        };
+
+        let lines = match action {
+            _ => self.lines.clone()
+        };
+
+        let lines_error = match action {
+            _ => self.lines_error.clone()
+        };
+
+        let obstacles = match action {
+            _ => self.obstacles.clone()
+        };
+
+        let obstacles_error = match action {
+            _ => self.obstacles_error.clone()
+        };
+
+        Self {
+            sensor_direction,
+            sensor_direction_error,
+            speed,
+            move_type,
+            distance,
+            distance_error,
+            lines,
+            lines_error,
+            obstacles,
+            obstacles_error,
+        }.into()
+    }
+}
 
 #[function_component(App)]
 pub fn app() -> Html {
     trace!("[App] Rendering");
 
+    // define styles
     let style = use_style!(
         r"
             width: 100%;
@@ -58,44 +187,76 @@ pub fn app() -> Html {
         "
     );
 
+    // define state
+    let rover_service = use_mut_ref(|| RoverService::new("http://rover/api"));
+    let state = use_reducer(AppState::default);
+
+    // define callbacks
+    let on_sensor_direction_change = {
+        let state = state.clone();
+
+        move |dir| state.dispatch(AppAction::SensorDirectionUpdate(dir))
+    };
+
+    let on_move_direction_change = {
+        let state = state.clone();
+
+        move |dir| state.dispatch(AppAction::MoveDirectionUpdate(dir))
+    };
+
+    // let create_move_cb = {
+    //     let rover_service = rover_service.clone();
+    //     let state = state.clone();
+    //
+    //     |move_type: MoveType, speed: u8| {
+    //         move |dir| match rover_service.borrow_mut().r#move(move_type, speed) {
+    //             Ok(_) => {}
+    //             Err(e) => {
+    //                 state.dispatch(AppAction::MoveDirectionUpdateError(e, ()));
+    //             }
+    //         }
+    //     }
+    // };
+
     html! {
-        <div class={style}>
-            <h1>{ "Hello World" }</h1>
-                <SensorsData
-                    left_obstacle={true}
-                    right_obstacle={false}
-                    distance={100.998}
-                    messages={vec![String::from("Extra message")]} />
-                <div class="controls">
-                    <div>
-                        <h5>{"Sensor Direction"}</h5>
-//                         {self.current_sensor_direction()}
-                        <DirectionControl
-                            controller_id="sensor"
-                            control_mode={DirectionControlMode::Multidirectional}
-                            module_mode={DirectionModuleMode::Cumulative}
-//                             on_direction_change=self.link.callback(|dir| Msg::SensorDirectionUpdate(dir))
-                            size={50} />
-                    </div>
-                    <div>
-                        <h5>{"Move Control"}</h5>
-//                         {self.current_move_direction()}
-                        <DirectionControl
-                            controller_id="platform"
-//                             on_direction_change=self.link.callback(|dir| Msg::MoveDirectionUpdate(dir))
-                            size={50}
-                            x_step={10}
-                            y_step={10}
-                            xinc_title="↻"
-                            xdec_title="↺"
-                            has_reset={true} />
+            <div class={style}>
+                <h1>{ "Hello World" }</h1>
+                    <SensorsData
+                        left_obstacle={true}
+                        right_obstacle={false}
+                        distance={100.998}
+                        messages={vec![String::from("Extra message")]} />
+                    <div class="controls">
+                        <div>
+                            <h5>{"Sensor Direction"}</h5>
+    //                         {self.current_sensor_direction()}
+                            <DirectionControl
+                                controller_id="sensor"
+                                control_mode={DirectionControlMode::Multidirectional}
+                                module_mode={DirectionModuleMode::Cumulative}
+                                on_direction_change={on_sensor_direction_change}
+                                size={50} />
+                        </div>
+                        <div>
+                            <h5>{"Move Control"}</h5>
+                            <p>
+                                {"Move direction "}<b>{state.move_type_repr()}</b>{" Speed "}<b>{state.speed}</b>
+                            </p>
+                            <DirectionControl
+                                controller_id="platform"
+                                on_direction_change={on_move_direction_change}
+                                size={50}
+                                x_step={10}
+                                y_step={10}
+                                xinc_title="↻"
+                                xdec_title="↺"
+                                has_reset={true} />
+                        </div>
                     </div>
                 </div>
-            </div>
-    }
+        }
 }
 
-// use anyhow::{anyhow, Error};
 // use css_in_rust::Style;
 
 // use std::collections::hash_map::HashMap;
@@ -111,32 +272,7 @@ pub fn app() -> Html {
 // use crate::components::sensors_data::SensorsData;
 // use crate::services::rover_service::RoverService;
 //
-// #[derive(Debug)]
-// pub enum Msg {
-//     RequestSensors,
-//     SensorDirectionUpdate((i32, i32)),
-//     SensorDirectionUpdateError(Error, (i32, i32)),
-//     MoveDirectionUpdate((i32, i32)),
-//     DistanceUpdate(f32),
-//     DistanceUpdateError(Error),
-//     ObstaclesUpdate(Vec<bool>),
-//     ObstaclesUpdateError(Error),
-//     LinesUpdate(Vec<bool>),
-//     LinesUpdateError(Error),
-// }
-//
-// #[derive(Default)]
-// pub struct State {
-//     pub sensor_direction: (i32, i32),
-//     pub sensor_direction_error: Option<Error>,
-//     pub move_direction: (i32, i32),
-//     pub distance: f32,
-//     pub distance_error: Option<Error>,
-//     pub lines: Vec<bool>,
-//     pub lines_error: Option<Error>,
-//     pub obstacles: Vec<bool>,
-//     pub obstacles_error: Option<Error>,
-// }
+
 //
 
 //
