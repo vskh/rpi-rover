@@ -25,7 +25,7 @@ const LOOK_TASK: &str = "task/look";
 
 pub struct RoverService {
     rover_api_endpoint: String,
-    pending_requests: HashMap<&'static str, AbortController>,
+    pending_requests: Rc<RefCell<HashMap<&'static str, Rc<AbortController>>>>,
 }
 
 type RoverServiceError = anyhow::Error;
@@ -36,7 +36,7 @@ impl RoverService {
     pub fn new(endpoint: &str) -> Self {
         RoverService {
             rover_api_endpoint: endpoint.to_owned(),
-            pending_requests: HashMap::new(),
+            pending_requests: Rc::new(RefCell::new(HashMap::new())),
         }
     }
 
@@ -49,24 +49,31 @@ impl RoverService {
     }
 
     pub fn r#move(
-        &mut self,
+        &self,
         r#type: MoveType,
         speed: u8,
         oncomplete: Callback<Status>,
-    ) -> Result<&AbortController, RoverServiceError> {
+    ) -> Result<Rc<AbortController>, RoverServiceError> {
         // cancel previous backend request, if any
-        match self.pending_requests.remove(MOVE_TASK) {
-            Some(pending_controller) => {
-                pending_controller.abort();
+        loop {
+            match self.pending_requests.try_borrow_mut() {
+                Ok(mut requests) => {
+                    match requests.remove(MOVE_TASK) {
+                        Some(pending_controller) => {
+                            pending_controller.abort();
+                        }
+                        _ => {}
+                    }
+
+                    break;
+                },
+                _ => {}
             }
-            _ => {}
         }
 
         // prepare abort controller for the new request
-        let controller = AbortController::new().map_err(Self::map_jsvalue_err)?;
+        let controller = Rc::new(AbortController::new().map_err(Self::map_jsvalue_err)?);
         let signal = controller.signal();
-
-        self.pending_requests.insert(MOVE_TASK, controller);
 
         // prepare request
         let api_endpoint = format!("{}/move", self.rover_api_endpoint);
@@ -80,7 +87,11 @@ impl RoverService {
         // any error within async scope cannot propagate directly to method return and
         // should be communicated via passed callback
         {
-            // let pending_requests = self.pending_requests.clone();
+            let controller = controller.clone();
+            let pending_requests = self.pending_requests.clone();
+
+            pending_requests.borrow_mut().insert(MOVE_TASK, controller);
+
             spawn_local(async move {
                 // send request
                 let result = req.send().await.map_err(Self::map_gloo_err);
@@ -95,15 +106,15 @@ impl RoverService {
                         } else {
                             let response_body = res.text().await;
                             warn!(
-                            "Move request failed: [{}] {:#?}",
-                            res.status(),
-                            response_body
-                        );
+                                "Move request failed: [{}] {:#?}",
+                                res.status(),
+                                response_body
+                            );
                             oncomplete.emit(Err(anyhow!(
-                            "Move operation failed: [{}] {:?}",
-                            res.status(),
-                            response_body
-                        )));
+                                "Move operation failed: [{}] {:?}",
+                                res.status(),
+                                response_body
+                            )));
                         }
                     }
                     Err(e) => {
@@ -112,12 +123,17 @@ impl RoverService {
                     }
                 }
 
-                // pending_requests.remove(MOVE_TASK);
+                loop {
+                    match pending_requests.try_borrow_mut() {
+                        Ok(mut requests) => { requests.remove(MOVE_TASK); break },
+                        _ => {}
+                    }
+                }
             });
         }
 
         // return abort controller for the spawned request
-        Ok(self.pending_requests.get(MOVE_TASK).unwrap())
+        Ok(controller)
     }
 
     // pub fn look_at(
