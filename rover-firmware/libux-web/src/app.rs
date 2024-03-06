@@ -32,8 +32,8 @@ pub enum AppAction {
 pub struct AppState {
     pub sensor_direction: (i32, i32),
     pub sensor_direction_error: Rc<Option<Error>>,
-    pub speed: u8,
-    pub move_type: Rc<Option<MoveType>>,
+    pub move_direction: (i32, i32),
+    pub move_direction_error: Rc<Option<Error>>,
     pub distance: f32,
     pub distance_error: Rc<Option<Error>>,
     pub lines: Rc<Vec<bool>>,
@@ -43,25 +43,25 @@ pub struct AppState {
 }
 
 impl AppState {
-    fn calc_move_type(move_direction: (i32, i32)) -> Option<MoveType> {
-        if move_direction.1 > 0 {
+    fn select_move_type(&self) -> Option<MoveType> {
+        if self.move_direction.1 > 0 {
             Some(MoveType::Forward)
-        } else if move_direction.1 < 0 {
+        } else if self.move_direction.1 < 0 {
             Some(MoveType::Backward)
-        } else if move_direction.0 > 0 {
+        } else if self.move_direction.0 > 0 {
             Some(MoveType::CWSpin)
-        } else if move_direction.0 < 0 {
+        } else if self.move_direction.0 < 0 {
             Some(MoveType::CCWSpin)
         } else {
             None
         }
     }
 
-    fn calc_speed(move_direction: (i32, i32)) -> u8 {
-        let unscaled_speed = if move_direction.0 != 0 {
-            move_direction.0
-        } else if move_direction.1 != 0 {
-            move_direction.1
+    fn select_speed(&self) -> u8 {
+        let unscaled_speed = if self.move_direction.0 != 0 {
+            self.move_direction.0
+        } else if self.move_direction.1 != 0 {
+            self.move_direction.1
         } else {
             0
         };
@@ -70,7 +70,7 @@ impl AppState {
     }
 
     fn move_type_repr(&self) -> char {
-        match &*self.move_type {
+        match self.select_move_type() {
             Some(MoveType::Forward) => '↑',
             Some(MoveType::Backward) => '↓',
             Some(MoveType::CWSpin) => '↻',
@@ -91,14 +91,15 @@ impl Reducible for AppState {
             _ => self.sensor_direction_error.clone()
         };
 
-        let speed = match action {
-            AppAction::MoveDirectionUpdate(dir) => AppState::calc_speed(dir),
-            _ => self.speed
+        let move_direction = match action {
+            AppAction::MoveDirectionUpdate(dir) => dir,
+            AppAction::MoveDirectionUpdateError(_, dir) => dir,
+            _ => self.move_direction
         };
 
-        let move_type = match action {
-            AppAction::MoveDirectionUpdate(dir) => Rc::new(AppState::calc_move_type(dir)),
-            _ => self.move_type.clone()
+        let move_direction_error = match action {
+            AppAction::MoveDirectionUpdateError(e, _) => Rc::new(Some(e)),
+            _ => self.move_direction_error.clone()
         };
 
         let distance = match action {
@@ -128,8 +129,8 @@ impl Reducible for AppState {
         Self {
             sensor_direction,
             sensor_direction_error,
-            speed,
-            move_type,
+            move_direction,
+            move_direction_error,
             distance,
             distance_error,
             lines,
@@ -191,6 +192,31 @@ pub fn app() -> Html {
     let rover_service = use_mut_ref(|| RoverService::new("http://rover/api"));
     let state = use_reducer(AppState::default);
 
+    // define side effects
+    {
+        let rover_service = rover_service.clone();
+        let state = state.clone();
+        let move_direction = state.move_direction;
+
+        use_effect_with(move_direction, move |_| {
+            let mut speed = state.select_speed();
+            let move_type = match state.select_move_type() {
+                Some(m_t) => m_t,
+                None => {
+                    speed = 0;
+                    MoveType::Forward
+                }
+            };
+
+            let _ = rover_service.borrow().r#move(move_type, speed, Callback::from(move |status| {
+                match status {
+                    Err(e) => state.dispatch(AppAction::MoveDirectionUpdateError(e, move_direction)),
+                    _ => {}
+                }
+            }));
+        })
+    }
+
     // define callbacks
     let on_sensor_direction_change = {
         let state = state.clone();
@@ -240,7 +266,7 @@ pub fn app() -> Html {
                         <div>
                             <h5>{"Move Control"}</h5>
                             <p>
-                                {"Move direction "}<b>{state.move_type_repr()}</b>{" Speed "}<b>{state.speed}</b>
+                                {"Move direction "}<b>{state.move_type_repr()}</b>{" Speed "}<b>{state.select_speed()}</b>
                             </p>
                             <DirectionControl
                                 controller_id="platform"
