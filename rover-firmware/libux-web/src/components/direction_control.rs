@@ -102,41 +102,47 @@ pub fn direction_control(props: &DirectionControlProps) -> Html {
         on_change: impl Fn(i32, i32),
     ) -> impl Fn(MouseEvent) {
         move |_| {
+            let mut _var = *var;
+            let mut _dvar = *dvar;
+
             if control_mode == DirectionControlMode::Unidirectional {
-                dvar.set(0);
+                _dvar = 0;
             }
 
             match module_mode {
                 DirectionModuleMode::Immediate => {
                     if increment {
-                        var.set(step);
+                        _var = step;
                     } else {
-                        var.set(-step);
+                        _var = -step;
                     }
                 }
                 DirectionModuleMode::Mixed => {
                     if (!increment && *var > 0) || (increment && *var < 0) {
-                        var.set(0);
+                        _var = 0;
                     } else {
-                        var.set(if increment {
-                            var.saturating_add(step)
+                        _var = if increment {
+                            _var.saturating_add(step)
                         } else {
-                            var.saturating_sub(step)
-                        });
+                            _var.saturating_sub(step)
+                        };
                     }
                 }
                 DirectionModuleMode::Cumulative => {
-                    var.set(if increment {
-                        var.saturating_add(step)
+                    _var = if increment {
+                        _var.saturating_add(step)
                     } else {
-                        var.saturating_sub(step)
-                    });
+                        _var.saturating_sub(step)
+                    };
                 }
             }
 
+            var.set(_var);
+            dvar.set(_dvar);
+
             // can't call on_direction_change cb directly here because that would require
             // knowledge of order between controlled variable and dependent variable (e.g. (x, y) or (y, x))
-            on_change(*var, *dvar)
+            on_change(_var, _dvar)
         }
     }
 
