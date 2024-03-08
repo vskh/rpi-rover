@@ -8,10 +8,10 @@ use anyhow::anyhow;
 use gloo_net::http::Request;
 use log::{error, trace, warn};
 use serde::Deserialize;
-use web_sys::AbortController;
 use web_sys::wasm_bindgen::JsValue;
-use yew::Callback;
+use web_sys::AbortController;
 use yew::platform::spawn_local;
+use yew::Callback;
 
 use libapi_http::api::{LookRequest, MoveRequest, MoveType, SenseType, ValueResponse};
 
@@ -66,9 +66,10 @@ impl RoverService {
                     }
 
                     break;
-                },
+                }
                 _ => {}
             }
+            trace!("Attempting to record new pending request...");
         }
 
         // prepare abort controller for the new request
@@ -93,14 +94,17 @@ impl RoverService {
             pending_requests.borrow_mut().insert(MOVE_TASK, controller);
 
             spawn_local(async move {
+                trace!("Spawning async move request: {:?}", req);
+
                 // send request
-                let result = req.send().await.map_err(Self::map_gloo_err);
+                let result = req.send().await;
 
                 // provide back the response
                 match result {
                     Ok(res) => {
+                        trace!("Successfully obtained response to move request: {:?}", res);
                         if res.ok() {
-                            trace!("Move request completed successfully.");
+                            trace!("Move request succeeded.");
                             oncomplete
                                 .emit(res.text().await.map_or_else(|e| Err(e.into()), |_| Ok(())));
                         } else {
@@ -111,23 +115,33 @@ impl RoverService {
                                 response_body
                             );
                             oncomplete.emit(Err(anyhow!(
-                                "Move operation failed: [{}] {:?}",
+                                "Move direction update failed: [{}] {:?}",
                                 res.status(),
                                 response_body
                             )));
                         }
                     }
                     Err(e) => {
-                        error!("Failed to send move request: {}", e);
-                        oncomplete.emit(Err(e));
+                        error!("Failed to send move request: {:?}", e);
+
+                        match e {
+                            gloo_net::Error::JsError(js_error) if js_error.name == "AbortError" => {
+                                /* ignore self-inflicted error caused by us aborting previous request */
+                            }
+                            _ => oncomplete.emit(Err(Self::map_gloo_err(e))),
+                        };
                     }
                 }
 
                 loop {
                     match pending_requests.try_borrow_mut() {
-                        Ok(mut requests) => { requests.remove(MOVE_TASK); break },
+                        Ok(mut requests) => {
+                            requests.remove(MOVE_TASK);
+                            break;
+                        }
                         _ => {}
                     }
+                    trace!("Attempting delete record of completed request...");
                 }
             });
         }
