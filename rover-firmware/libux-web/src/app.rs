@@ -100,7 +100,8 @@ impl Reducible for AppState {
         };
 
         let move_direction_error = match action {
-            AppAction::MoveDirectionUpdateError(e, _) => Rc::new(Some(e)),
+            AppAction::MoveDirectionUpdate(_) => None.into(),
+            AppAction::MoveDirectionUpdateError(e, _) => Some(e).into(),
             _ => self.move_direction_error.clone(),
         };
 
@@ -245,43 +246,55 @@ pub fn app() -> Html {
         move |dir| state.dispatch(AppAction::MoveDirectionUpdate(dir))
     };
 
+    let mut extra_messages: Vec<String> = vec![];
+    if let Some(ref distance_err) = *state.distance_error {
+        extra_messages.push(format!("Distance/{}", distance_err));
+    }
+    if let Some(ref obstactles_err) = *state.obstacles_error {
+        extra_messages.push(format!("Obstacles/{}", obstactles_err));
+    }
+    if let Some(ref look_err) = *state.sensor_direction_error {
+        extra_messages.push(format!("Sensors/{}", look_err))
+    }
+
     html! {
-            <div class={style}>
-                <h1>{ "Hello World" }</h1>
-                    <SensorsData
-                        left_obstacle={true}
-                        right_obstacle={false}
-                        distance={100.998}
-                        messages={vec![String::from("Extra message")]} />
-                    <div class="controls">
-                        <div>
-                            <h5>{"Sensor Direction"}</h5>
-    //                         {self.current_sensor_direction()}
-                            <DirectionControl
-                                controller_id="sensor"
-                                control_mode={DirectionControlMode::Multidirectional}
-                                module_mode={DirectionModuleMode::Cumulative}
-                                on_direction_change={on_sensor_direction_change}
-                                size={50} />
-                        </div>
-                        <div>
-                            <h5>{"Move Control"}</h5>
-                            <p>
-                                {"Move direction "}<b>{state.move_type_repr()}</b>{" Speed "}<b>{state.select_speed()}</b>
-                            </p>
-                            <DirectionControl
-                                controller_id="platform"
-                                on_direction_change={on_move_direction_change}
-                                size={50}
-                                x_step={8421505} // this increment gives approx 1 unit of speed change
-                                y_step={8421505} // per click
-                                xinc_title="↻"
-                                xdec_title="↺"
-                                has_reset={true} />
-                        </div>
-                    </div>
+        <div class={style}>
+            <SensorsData
+                left_obstacle={state.obstacles.get(0).unwrap_or(&false)}
+                right_obstacle={state.obstacles.get(1).unwrap_or(&false)}
+                distance={state.distance}
+                messages={extra_messages} />
+            <div class="controls">
+                <div>
+                    <h5>{"Sensor Direction"}</h5>
+                    <p>
+                        {"Sensor direction "}<b>{"[ "}{state.sensor_direction.0}{" ; "}{state.sensor_direction.1}{" ]"}</b>
+                    </p>
+                    <DirectionControl
+                        controller_id="sensor"
+                        control_mode={DirectionControlMode::Multidirectional}
+                        module_mode={DirectionModuleMode::Cumulative}
+                        on_direction_change={on_sensor_direction_change}
+                        size={50} />
                 </div>
-        }
+                <div>
+                    <h5>{"Move Control"}</h5>
+                    <p>
+                        {"Move direction "}<b>{state.move_type_repr()}</b>{" Speed "}<b>{state.select_speed()}</b>
+                    </p>
+                    <DirectionControl
+                        controller_id="platform"
+                        on_direction_change={on_move_direction_change}
+                        size={50}
+                        x_step={8421505} // this increment gives approx 1 unit of speed change
+                        y_step={8421505} // per click
+                        xinc_title="↻"
+                        xdec_title="↺"
+                        has_reset={true} />
+                </div>
+            </div>
+        </div>
+    }
 }
 
 // use css_in_rust::Style;
@@ -313,41 +326,6 @@ pub fn app() -> Html {
 // }
 //
 // impl App {
-//     fn current_sensor_direction(&self) -> Html {
-//         html! {
-//             <p>
-//                 {"Sensor direction "}<b>{"[ "}{self.state.sensor_direction.0}{" ; "}{self.state.sensor_direction.1}{" ]"}</b>
-//             </p>
-//         }
-//     }
-//
-//     fn current_move_direction(&self) -> Html {
-//         let mut direction = "■";
-//
-//         if self.state.move_direction.1 > 0 {
-//             direction = "↑";
-//         } else if self.state.move_direction.1 < 0 {
-//             direction = "↓";
-//         } else if self.state.move_direction.0 > 0 {
-//             direction = "↻";
-//         } else if self.state.move_direction.0 < 0 {
-//             direction = "↺";
-//         }
-//
-//         let mut speed = 0;
-//
-//         if self.state.move_direction.0 != 0 {
-//             speed = self.state.move_direction.0;
-//         } else if self.state.move_direction.1 != 0 {
-//             speed = self.state.move_direction.1;
-//         }
-//
-//         return html! {
-//             <p>
-//                 {"Move direction "}<b>{direction}</b>{" Speed "}<b>{speed}</b>
-//             </p>
-//         };
-//     }
 //
 //     fn update_sensor_direction(&mut self, new_direction: (i32, i32)) -> ShouldRender {
 //         let old_direction = self.state.sensor_direction.clone();
@@ -391,10 +369,6 @@ pub fn app() -> Html {
 //         self.state.sensor_direction = prev_direction;
 //
 //         true
-//     }
-//
-//     fn update_move_direction(&mut self, new_direction: (i32, i32)) -> ShouldRender {
-//         self.state.move_direction.neq_assign(new_direction)
 //     }
 //
 //     fn update_distance(&mut self, new_distance: f32) -> ShouldRender {
@@ -608,16 +582,7 @@ pub fn app() -> Html {
 //     fn view(&self) -> Html {
 //         trace!("Rendering.");
 //
-//         let mut extra_messages: Vec<String> = vec![];
-//         if let Some(ref distance_err) = self.state.distance_error {
-//             extra_messages.push(format!("Distance/{}", distance_err));
-//         }
-//         if let Some(ref obstactles_err) = self.state.obstacles_error {
-//             extra_messages.push(format!("Obstacles/{}", obstactles_err));
-//         }
-//         if let Some(ref look_err) = self.state.sensor_direction_error {
-//             extra_messages.push(format!("Sensors/{}", look_err))
-//         }
+
 //
 //         return html! {
 //             <div class=self.style.clone()>
