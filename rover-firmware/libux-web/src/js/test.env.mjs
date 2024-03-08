@@ -15,14 +15,19 @@ export async function injectMirage() {
 }
 
 export function initMirage() {
-    let { createServer } = window.MirageJS.Server;
+    let { createServer, Response } = window.MirageJS.Server;
 
     createServer({
         routes() {
             this.urlPrefix = "http://rover";
             this.namespace = "api";
 
-            this.post("move", (schema, request) => { /* no response intended */ });
+            this.post("move", (schema, request) => {
+                return new Response(204);
+            });
+            this.post("look", (schema, request) => {
+                return new Response(204);
+            })
         }
     });
 }
