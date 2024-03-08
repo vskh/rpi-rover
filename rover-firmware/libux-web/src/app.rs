@@ -28,7 +28,7 @@ pub enum AppAction {
     LinesUpdateError(Error),
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct AppState {
     pub sensor_direction: (i32, i32),
     pub sensor_direction_error: Rc<Option<Error>>,
@@ -66,7 +66,7 @@ impl AppState {
             0
         };
 
-        ((unscaled_speed.abs() as f64 / i32::MAX as f64) * (u8::MAX as f64)).ceil() as u8
+        ((unscaled_speed.abs() as f64 / i32::MAX as f64) * (u8::MAX as f64)).floor() as u8
     }
 
     fn move_type_repr(&self) -> char {
@@ -74,8 +74,8 @@ impl AppState {
             Some(MoveType::Forward) => '↑',
             Some(MoveType::Backward) => '↓',
             Some(MoveType::CWSpin) => '↻',
-            Some(MoveType::CCWSpin) =>  '↺',
-            None => '■'
+            Some(MoveType::CCWSpin) => '↺',
+            None => '■',
         }
     }
 }
@@ -84,49 +84,51 @@ impl Reducible for AppState {
     type Action = AppAction;
 
     fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
+        trace!("Processing dispatched action: {:?}", action);
+
         let sensor_direction = match action {
-            _ => self.sensor_direction
+            _ => self.sensor_direction,
         };
         let sensor_direction_error = match action {
-            _ => self.sensor_direction_error.clone()
+            _ => self.sensor_direction_error.clone(),
         };
 
         let move_direction = match action {
             AppAction::MoveDirectionUpdate(dir) => dir,
             AppAction::MoveDirectionUpdateError(_, dir) => dir,
-            _ => self.move_direction
+            _ => self.move_direction,
         };
 
         let move_direction_error = match action {
             AppAction::MoveDirectionUpdateError(e, _) => Rc::new(Some(e)),
-            _ => self.move_direction_error.clone()
+            _ => self.move_direction_error.clone(),
         };
 
         let distance = match action {
-            _ => self.distance
+            _ => self.distance,
         };
 
         let distance_error = match action {
-            _ => self.distance_error.clone()
+            _ => self.distance_error.clone(),
         };
 
         let lines = match action {
-            _ => self.lines.clone()
+            _ => self.lines.clone(),
         };
 
         let lines_error = match action {
-            _ => self.lines_error.clone()
+            _ => self.lines_error.clone(),
         };
 
         let obstacles = match action {
-            _ => self.obstacles.clone()
+            _ => self.obstacles.clone(),
         };
 
         let obstacles_error = match action {
-            _ => self.obstacles_error.clone()
+            _ => self.obstacles_error.clone(),
         };
 
-        Self {
+        let new_state = Self {
             sensor_direction,
             sensor_direction_error,
             move_direction,
@@ -137,7 +139,11 @@ impl Reducible for AppState {
             lines_error,
             obstacles,
             obstacles_error,
-        }.into()
+        };
+
+        debug!("Updated state: {:#?}", new_state);
+
+        new_state.into()
     }
 }
 
@@ -199,6 +205,8 @@ pub fn app() -> Html {
         let move_direction = state.move_direction;
 
         use_effect_with(move_direction, move |_| {
+            trace!("[App] Scheduling move direction update.");
+
             let mut speed = state.select_speed();
             let move_type = match state.select_move_type() {
                 Some(m_t) => m_t,
@@ -208,12 +216,19 @@ pub fn app() -> Html {
                 }
             };
 
-            let _ = rover_service.borrow().r#move(move_type, speed, Callback::from(move |status| {
-                match status {
-                    Err(e) => state.dispatch(AppAction::MoveDirectionUpdateError(e, move_direction)),
-                    _ => {}
-                }
-            }));
+            let _ = rover_service.borrow().r#move(
+                move_type,
+                speed,
+                Callback::from(move |status| match status {
+                    Err(e) => {
+                        trace!("[App] Rover move direction update failed: {:?}", e);
+                        state.dispatch(AppAction::MoveDirectionUpdateError(e, move_direction));
+                    }
+                    _ => {
+                        trace!("[App] Rover move direction update succeeded.");
+                    }
+                }),
+            );
         })
     }
 
@@ -229,20 +244,6 @@ pub fn app() -> Html {
 
         move |dir| state.dispatch(AppAction::MoveDirectionUpdate(dir))
     };
-
-    // let create_move_cb = {
-    //     let rover_service = rover_service.clone();
-    //     let state = state.clone();
-    //
-    //     |move_type: MoveType, speed: u8| {
-    //         move |dir| match rover_service.borrow_mut().r#move(move_type, speed) {
-    //             Ok(_) => {}
-    //             Err(e) => {
-    //                 state.dispatch(AppAction::MoveDirectionUpdateError(e, ()));
-    //             }
-    //         }
-    //     }
-    // };
 
     html! {
             <div class={style}>
@@ -272,8 +273,8 @@ pub fn app() -> Html {
                                 controller_id="platform"
                                 on_direction_change={on_move_direction_change}
                                 size={50}
-                                x_step={10}
-                                y_step={10}
+                                x_step={8421505} // this increment gives approx 1 unit of speed change
+                                y_step={8421505} // per click
                                 xinc_title="↻"
                                 xdec_title="↺"
                                 has_reset={true} />
