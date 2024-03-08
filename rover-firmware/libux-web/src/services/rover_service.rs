@@ -69,7 +69,7 @@ impl RoverService {
                 }
                 _ => {}
             }
-            trace!("Attempting to record new pending request...");
+            trace!("Attempting to record a pending move request...");
         }
 
         // prepare abort controller for the new request
@@ -141,7 +141,104 @@ impl RoverService {
                         }
                         _ => {}
                     }
-                    trace!("Attempting delete record of completed request...");
+                    trace!("Attempting delete record of completed move request...");
+                }
+            });
+        }
+
+        // return abort controller for the spawned request
+        Ok(controller)
+    }
+
+    pub fn look_at(&self,  h: i16, v: i16, oncomplete: Callback<Status>) -> Result<Rc<AbortController>, RoverServiceError> {
+        // cancel previous backend request, if any
+        loop {
+            match self.pending_requests.try_borrow_mut() {
+                Ok(mut requests) => {
+                    match requests.remove(LOOK_TASK) {
+                        Some(pending_controller) => {
+                            pending_controller.abort();
+                        }
+                        _ => {}
+                    }
+
+                    break;
+                }
+                _ => {}
+            }
+            trace!("Attempting to record a pending look request...");
+        }
+
+        // prepare abort controller for the new request
+        let controller = Rc::new(AbortController::new().map_err(Self::map_jsvalue_err)?);
+        let signal = controller.signal();
+
+        // prepare request
+        let api_endpoint = format!("{}/look", self.rover_api_endpoint);
+        let data = LookRequest { h, v };
+        let req = Request::post(&api_endpoint)
+            .abort_signal(Some(&signal))
+            .json(&data)
+            .map_err(Self::map_gloo_err)?;
+
+        // launch async task
+        // any error within async scope cannot propagate directly to method return and
+        // should be communicated via passed callback
+        {
+            let controller = controller.clone();
+            let pending_requests = self.pending_requests.clone();
+
+            pending_requests.borrow_mut().insert(LOOK_TASK, controller);
+
+            spawn_local(async move {
+                trace!("Spawning async move request: {:?}", req);
+
+                // send request
+                let result = req.send().await;
+
+                // provide back the response
+                match result {
+                    Ok(res) => {
+                        trace!("Successfully obtained response to look request: {:?}", res);
+                        if res.ok() {
+                            trace!("Look request succeeded.");
+                            oncomplete
+                                .emit(res.text().await.map_or_else(|e| Err(e.into()), |_| Ok(())));
+                        } else {
+                            let response_body = res.text().await;
+                            warn!(
+                                "Look request failed: [{}] {:#?}",
+                                res.status(),
+                                response_body
+                            );
+                            oncomplete.emit(Err(anyhow!(
+                                "Look direction update failed: [{}] {:?}",
+                                res.status(),
+                                response_body
+                            )));
+                        }
+                    }
+                    Err(e) => {
+                        error!("Failed to send look request: {:?}", e);
+
+                        match e {
+                            gloo_net::Error::JsError(js_error) if js_error.name == "AbortError" => {
+                                /* ignore self-inflicted error caused by us aborting previous request */
+                            }
+                            _ => oncomplete.emit(Err(Self::map_gloo_err(e))),
+                        };
+                    }
+                }
+
+                loop {
+                    match pending_requests.try_borrow_mut() {
+                        Ok(mut requests) => {
+                            requests.remove(LOOK_TASK);
+                            break;
+                        }
+                        _ => {}
+                    }
+                    trace!("Attempting delete record of completed look request...");
                 }
             });
         }

@@ -85,48 +85,36 @@ impl Reducible for AppState {
 
     fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
         trace!("Processing dispatched action: {:?}", action);
-
-        let sensor_direction = match action {
-            _ => self.sensor_direction,
-        };
-        let sensor_direction_error = match action {
-            _ => self.sensor_direction_error.clone(),
-        };
-
-        let move_direction = match action {
-            AppAction::MoveDirectionUpdate(dir) => dir,
-            AppAction::MoveDirectionUpdateError(_, dir) => dir,
-            _ => self.move_direction,
-        };
-
-        let move_direction_error = match action {
-            AppAction::MoveDirectionUpdate(_) => None.into(),
-            AppAction::MoveDirectionUpdateError(e, _) => Some(e).into(),
-            _ => self.move_direction_error.clone(),
-        };
-
-        let distance = match action {
-            _ => self.distance,
-        };
-
-        let distance_error = match action {
-            _ => self.distance_error.clone(),
-        };
-
-        let lines = match action {
-            _ => self.lines.clone(),
-        };
-
-        let lines_error = match action {
-            _ => self.lines_error.clone(),
-        };
-
-        let obstacles = match action {
-            _ => self.obstacles.clone(),
-        };
-
-        let obstacles_error = match action {
-            _ => self.obstacles_error.clone(),
+        
+        let mut sensor_direction = self.sensor_direction.clone();
+        let mut sensor_direction_error = self.sensor_direction_error.clone();
+        let mut move_direction = self.move_direction.clone();
+        let mut move_direction_error = self.move_direction_error.clone();
+        let mut distance = self.distance.clone();
+        let mut distance_error = self.distance_error.clone();
+        let mut lines = self.lines.clone();
+        let mut lines_error = self.lines_error.clone();
+        let mut obstacles = self.obstacles.clone();
+        let mut obstacles_error = self.obstacles_error.clone();
+        
+        match action {
+            AppAction::SensorDirectionUpdate(dir) => {
+                sensor_direction = dir;
+                sensor_direction_error = None.into();
+            },
+            AppAction::SensorDirectionUpdateError(e, dir) => {
+                sensor_direction = dir;
+                sensor_direction_error = Some(e).into();
+            },
+            AppAction::MoveDirectionUpdate(dir) => {
+                move_direction = dir;
+                move_direction_error = None.into();
+            },
+            AppAction::MoveDirectionUpdateError(e, dir) => {
+                move_direction = dir;
+                move_direction_error = Some(e).into();
+            },
+            _ => {}
         };
 
         let new_state = Self {
@@ -200,7 +188,30 @@ pub fn app() -> Html {
     let state = use_reducer(AppState::default);
 
     // define side effects
-    {
+    { // sensor direction
+        let rover_service = rover_service.clone();
+        let state = state.clone();
+        let sensor_direction = state.sensor_direction;
+
+        use_effect_with(sensor_direction, move |_| {
+            trace!("[App] Scheduling sensor direction update.");
+
+            let _ = rover_service.borrow().look_at(
+                - sensor_direction.0 as i16,
+                - sensor_direction.1 as i16,
+                Callback::from(move |status| match status {
+                    Err(e) => {
+                        trace!("[App] Rover look direction update failed: {:?}", e);
+                        state.dispatch(AppAction::SensorDirectionUpdateError(e, sensor_direction));
+                    }
+                    _ => {
+                        trace!("[App] Rover look direction update succeeded.");
+                    }
+                }),
+            );
+        })
+    }
+    { // move direction
         let rover_service = rover_service.clone();
         let state = state.clone();
         let move_direction = state.move_direction;
@@ -327,49 +338,7 @@ pub fn app() -> Html {
 //
 // impl App {
 //
-//     fn update_sensor_direction(&mut self, new_direction: (i32, i32)) -> ShouldRender {
-//         let old_direction = self.state.sensor_direction.clone();
 //
-//         if self.state.sensor_direction.neq_assign(new_direction) {
-//             self.backend_tasks.remove(LOOK_TASK);
-//
-//             match self
-//                 .rover_service
-//                 .look_at(
-//                     - self.state.sensor_direction.0 as i16,
-//                     - self.state.sensor_direction.1 as i16,
-//                     self.link.callback(move |r| match r {
-//                         Ok(()) => Msg::SensorDirectionUpdate(new_direction),
-//                         Err(e) => Msg::SensorDirectionUpdateError(e, old_direction)
-//                     })) {
-//                 Ok(task) => {
-//                     self.backend_tasks.insert(LOOK_TASK, Box::new(task));
-//                 }
-//                 Err(e) => {
-//                     self.link.send_message(
-//                         Msg::SensorDirectionUpdateError(
-//                             anyhow!("Failed to request a look: {}", e),
-//                             old_direction
-//                         )
-//                     );
-//                 }
-//             }
-//
-//             return true;
-//         } else {
-//             self.state.sensor_direction_error.take();
-//         }
-//
-//         false
-//     }
-//
-//     fn update_sensor_direction_error(&mut self, e: Error, prev_direction: (i32, i32)) -> ShouldRender {
-//         self.backend_tasks.remove(LOOK_TASK);
-//         self.state.sensor_direction_error = Some(e);
-//         self.state.sensor_direction = prev_direction;
-//
-//         true
-//     }
 //
 //     fn update_distance(&mut self, new_distance: f32) -> ShouldRender {
 //         self.backend_tasks.remove(GET_DISTANCE_TASK);
@@ -480,54 +449,10 @@ pub fn app() -> Html {
 // }
 //
 // impl Component for App {
-//     type Message = Msg;
-//     type Properties = ();
+
 //
 //     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
-//         let state = State::default();
-//         let style = Style::create(
-//             "App",
-//             r"
-//                 width: 100%;
-//                 height: 100%;
-//
-//                 display: flex;
-//                 flex-direction: column;
-//                 justify-content: center;
-//                 align-items: center;
-//
-//                 .error {
-//                     color: red;
-//                 }
-//
-//                 .controls {
-//                     display: flex;
-//                     flex-direction: row;
-//                     justify-content: space-between;
-//
-//                     box-sizing: border-box;
-//                     width: 100%;
-//                     padding: 10px 20px;
-//                     position: fixed;
-//                     bottom: 0;
-//                 }
-//
-//                 .controls>div {
-//                     width: 50%;
-//
-//                     display: flex;
-//                     flex-direction: column;
-//                     justify-content: space-between;
-//                     align-items: center;
-//                 }
-//
-//                 .controls>div>h5 {
-//                     margin: 10px auto;
-//                     text-align: center;
-//                 }
-//             ",
-//         )
-//             .unwrap();
+
 //
 //         let rover_service = RoverService::new("http://rover/api");
 //
@@ -574,49 +499,5 @@ pub fn app() -> Html {
 //
 //         true
 //     }
-//
-//     fn change(&mut self, _props: Self::Properties) -> ShouldRender {
-//         false
-//     }
-//
-//     fn view(&self) -> Html {
-//         trace!("Rendering.");
-//
 
-//
-//         return html! {
-//             <div class=self.style.clone()>
-//                 <SensorsData
-//                     left_obstacle={self.state.obstacles.get(0).unwrap_or(&false)}
-//                     right_obstacle={self.state.obstacles.get(1).unwrap_or(&false)}
-//                     distance={self.state.distance}
-//                     messages={extra_messages} />
-//                 <div class="controls">
-//                     <div>
-//                         <h5>{"Sensor Direction"}</h5>
-//                         {self.current_sensor_direction()}
-//                         <DirectionControl
-//                             controller_id="sensor"
-//                             control_mode={DirectionControlMode::Multidirectional}
-//                             module_mode={DirectionModuleMode::Cumulative}
-//                             on_direction_change=self.link.callback(|dir| Msg::SensorDirectionUpdate(dir))
-//                             size={50} />
-//                     </div>
-//                     <div>
-//                         <h5>{"Move Control"}</h5>
-//                         {self.current_move_direction()}
-//                         <DirectionControl
-//                             controller_id="platform"
-//                             on_direction_change=self.link.callback(|dir| Msg::MoveDirectionUpdate(dir))
-//                             size={50}
-//                             x_step={10}
-//                             y_step={10}
-//                             xinc_title="↻"
-//                             xdec_title="↺"
-//                             has_reset={true} />
-//                     </div>
-//                 </div>
-//             </div>
-//         };
-//     }
 // }
