@@ -1,4 +1,4 @@
-use log::trace;
+use log::{debug, trace};
 use stylist::yew::use_style;
 use yew::{
     function_component, html, use_state, AttrValue, Callback, Html, MouseEvent, Properties,
@@ -181,14 +181,14 @@ pub fn direction_control(props: &DirectionControlProps) -> Html {
     let x = use_state(|| 0);
     let y = use_state(|| 0);
 
-    trace!(
+    debug!(
         "[DirectionControl(#{})] Rendering: ({}, {})",
         props.controller_id,
         *x,
         *y
     );
 
-    let xdec = {
+    let on_xdec = {
         let on_direction_change = props.on_direction_change.clone();
         let controller_id = props.controller_id.clone();
 
@@ -201,16 +201,14 @@ pub fn direction_control(props: &DirectionControlProps) -> Html {
             props.module_mode,
             move |x, y| {
                 trace!(
-                    "[DirectionControl(#{})] Decrementing X: ({}, {})",
+                    "[DirectionControl(#{})] Decrementing X",
                     controller_id,
-                    x,
-                    y
                 );
                 on_direction_change.emit((x, y));
             },
         )
     };
-    let xinc = {
+    let on_xinc = {
         let on_direction_change = props.on_direction_change.clone();
         let controller_id = props.controller_id.clone();
 
@@ -223,17 +221,15 @@ pub fn direction_control(props: &DirectionControlProps) -> Html {
             props.module_mode,
             move |x, y| {
                 trace!(
-                    "[DirectionControl(#{})] Incrementing X: ({}, {})",
+                    "[DirectionControl(#{})] Incrementing X",
                     controller_id,
-                    x,
-                    y
                 );
                 on_direction_change.emit((x, y));
             },
         )
     };
 
-    let ydec = {
+    let on_ydec = {
         let on_direction_change = props.on_direction_change.clone();
         let controller_id = props.controller_id.clone();
 
@@ -246,16 +242,14 @@ pub fn direction_control(props: &DirectionControlProps) -> Html {
             props.module_mode,
             move |y, x| {
                 trace!(
-                    "[DirectionControl(#{})] Decrementing Y: ({}, {})",
+                    "[DirectionControl(#{})] Decrementing Y",
                     controller_id,
-                    x,
-                    y
                 );
                 on_direction_change.emit((x, y));
             },
         )
     };
-    let yinc = {
+    let on_yinc = {
         let on_direction_change = props.on_direction_change.clone();
         let controller_id = props.controller_id.clone();
 
@@ -268,10 +262,8 @@ pub fn direction_control(props: &DirectionControlProps) -> Html {
             props.module_mode,
             move |x, y| {
                 trace!(
-                    "[DirectionControl(#{})] Incrementing Y: ({}, {})",
+                    "[DirectionControl(#{})] Incrementing Y",
                     controller_id,
-                    x,
-                    y
                 );
                 on_direction_change.emit((y, x));
             },
@@ -302,10 +294,10 @@ pub fn direction_control(props: &DirectionControlProps) -> Html {
     html! {
             <div class={class}>
                 <div class="row row-odd">
-                    <button onclick={yinc}>{&props.yinc_title}</button>
+                    <button onclick={on_yinc}>{&props.yinc_title}</button>
                 </div>
                 <div class="row">
-                    <button onclick={xdec}>{&props.xdec_title}</button>
+                    <button onclick={on_xdec}>{&props.xdec_title}</button>
                     {
                         if props.has_reset {
                             html!{
@@ -315,10 +307,10 @@ pub fn direction_control(props: &DirectionControlProps) -> Html {
                             html!{}
                         }
                     }
-                    <button onclick={xinc}>{&props.xinc_title}</button>
+                    <button onclick={on_xinc}>{&props.xinc_title}</button>
                 </div>
                 <div class="row row-odd">
-                    <button onclick={ydec}>{&props.ydec_title}</button>
+                    <button onclick={on_ydec}>{&props.ydec_title}</button>
                 </div>
             </div>
         }
