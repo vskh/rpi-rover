@@ -22,12 +22,25 @@ export function initMirage() {
             this.urlPrefix = "http://rover";
             this.namespace = "api";
 
+            let distance = 0;
+
             this.post("move", (schema, request) => {
                 return new Response(204);
             });
             this.post("look", (schema, request) => {
                 return new Response(204);
-            })
+            });
+            this.get("sense/obstacles", (schema, request) => {
+                return [Math.random() > 0.5, Math.random() < 0.5];
+            });
+            this.get("sense/lines", (schema, request) => {
+                return [Math.random() > 0.5, Math.random() < 0.5];
+            });
+            this.get("sense/distance", (schema, request) => {
+                distance += (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 100);
+
+                return distance;
+            });
         }
     });
 }
