@@ -38,9 +38,9 @@ pre-build:
 	docker buildx use $(BUILDER_NAME)
 
 frontend/data/app:
-	cp -r ../rover-firmware/libux-web/app frontend/data
+	cp -r ../rover-firmware/libux-web/dist frontend/data
 
-prebuild-frontend: frontend/data/app
+prebuild-frontend: frontend/data/dist
 
 servoblaster/src:
 	cp -r ../3rdparty/PiBits/ServoBlaster/user servoblaster/src
