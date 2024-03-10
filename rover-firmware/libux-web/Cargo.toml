@@ -16,6 +16,7 @@ futures = "0.3.30"
 log = "0.4.21"
 gloo-net = { version = "0.5.0", features = ["http"] }
 serde = "1.0.197"
+serde_json = "1.0.114"
 stylist = { version = "0.13.0", features = ["yew_integration"] }
 wasm-bindgen = { version = "0.2.92" }
 wasm-bindgen-futures = "0.4.42"
@@ -24,3 +25,4 @@ web-sys = { version = "0.3.68", features = ["AbortController"] }
 yew = { version = "0.21.0", features = ["csr"] }
 
 libapi-http = { path = "../libapi-http" }
+libutil = { path = "../libutil", default-features = false, features = ["helpers"] }
