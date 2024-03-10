@@ -261,11 +261,17 @@ pub fn app() -> Html {
     if let Some(ref distance_err) = *state.distance_error {
         extra_messages.push(format!("Distance/{}", distance_err));
     }
+    if let Some(ref lines_err) = *state.lines_error {
+        extra_messages.push(format!("Lines/{}", lines_err));
+    }
     if let Some(ref obstactles_err) = *state.obstacles_error {
         extra_messages.push(format!("Obstacles/{}", obstactles_err));
     }
     if let Some(ref look_err) = *state.sensor_direction_error {
-        extra_messages.push(format!("Sensors/{}", look_err))
+        extra_messages.push(format!("Look/{}", look_err))
+    }
+    if let Some(ref move_err) = *state.move_direction_error {
+        extra_messages.push(format!("Move/{}", move_err))
     }
 
     html! {
