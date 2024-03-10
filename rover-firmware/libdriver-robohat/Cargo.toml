@@ -9,4 +9,4 @@ anyhow = "1.0.80"
 rppal = "0.17.1"
 thiserror = "1.0.57"
 libdriver = { path = "../libdriver" }
-libutil = { path = "../libutil" }
+libutil = { path = "../libutil", features = ["default", "softpwm"] }
