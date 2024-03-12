@@ -21,7 +21,7 @@ endif
 
 build:
 	$(BUILD_TOOL) build $(PROFILEOPT) --target $(TARGET_PLATFORM)
-	wasm-pack build --target web --no-typescript --out-dir app/pkg libux-web
+	trunk build --release libux-web/index.html
 
 publish: build
 
@@ -31,7 +31,7 @@ undeploy:
 
 clean:
 	cross clean
-	rm -rf libux-web/app/pkg
+	rm -rf libux-web/dist
 	rm -rf libux-web/target
 
 .PHONY: build publish deploy undeploy clean

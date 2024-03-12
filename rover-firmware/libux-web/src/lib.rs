@@ -1,4 +1,4 @@
-use log::{Level, info};
+use log::Level;
 use wasm_bindgen::prelude::*;
 
 use crate::app::App;
