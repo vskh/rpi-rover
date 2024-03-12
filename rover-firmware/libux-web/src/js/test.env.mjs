@@ -32,15 +32,15 @@ export function initMirage() {
             });
             this.get("sense/obstacles", (schema, request) => {
                 return [Math.random() > 0.5, Math.random() < 0.5];
-            });
+            }, { timing: Math.random() * 3000 });
             this.get("sense/lines", (schema, request) => {
                 return [Math.random() > 0.5, Math.random() < 0.5];
-            });
+            }, { timing: Math.random() * 3000 });
             this.get("sense/distance", (schema, request) => {
                 distance += (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 100);
 
                 return distance;
-            });
+            }, { timing: Math.random() * 3000 });
         }
     });
 }
