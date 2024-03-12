@@ -1,8 +1,9 @@
 use std::rc::Rc;
 
-use anyhow::{anyhow, Error};
-use log::{debug, trace};
+use anyhow::Error;
+use log::{debug, error, trace, warn};
 use stylist::yew::use_style;
+use web_time::SystemTime;
 use yew::prelude::*;
 
 use libapi_http::api::MoveType;
@@ -15,7 +16,6 @@ use crate::services::rover_service::RoverService;
 
 #[derive(Debug)]
 pub enum AppAction {
-    RequestSensors,
     SensorDirectionUpdate((i32, i32)),
     SensorDirectionUpdateError(Error, (i32, i32)),
     MoveDirectionUpdate((i32, i32)),
@@ -28,7 +28,7 @@ pub enum AppAction {
     LinesUpdateError(Error),
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct AppState {
     pub sensor_direction: (i32, i32),
     pub sensor_direction_error: Rc<Option<Error>>,
@@ -36,10 +36,13 @@ pub struct AppState {
     pub move_direction_error: Rc<Option<Error>>,
     pub distance: f32,
     pub distance_error: Rc<Option<Error>>,
+    pub distance_timestamp: SystemTime,
     pub lines: Rc<Vec<bool>>,
     pub lines_error: Rc<Option<Error>>,
+    pub lines_timestamp: SystemTime,
     pub obstacles: Rc<Vec<bool>>,
     pub obstacles_error: Rc<Option<Error>>,
+    pub obstacles_timestamp: SystemTime
 }
 
 impl AppState {
@@ -80,6 +83,26 @@ impl AppState {
     }
 }
 
+impl Default for AppState {
+    fn default() -> Self {
+        Self {
+            sensor_direction: Default::default(),
+            sensor_direction_error: Default::default(),
+            move_direction: Default::default(),
+            move_direction_error: Default::default(),
+            distance: Default::default(),
+            distance_error: Default::default(),
+            distance_timestamp: SystemTime::UNIX_EPOCH,
+            lines: Default::default(),
+            lines_error: Default::default(),
+            lines_timestamp: SystemTime::UNIX_EPOCH,
+            obstacles: Default::default(),
+            obstacles_error: Default::default(),
+            obstacles_timestamp: SystemTime::UNIX_EPOCH
+        }
+    }
+}
+
 impl Reducible for AppState {
     type Action = AppAction;
 
@@ -92,10 +115,13 @@ impl Reducible for AppState {
         let mut move_direction_error = self.move_direction_error.clone();
         let mut distance = self.distance.clone();
         let mut distance_error = self.distance_error.clone();
+        let mut distance_timestamp = self.distance_timestamp;
         let mut lines = self.lines.clone();
         let mut lines_error = self.lines_error.clone();
+        let mut lines_timestamp = self.lines_timestamp;
         let mut obstacles = self.obstacles.clone();
         let mut obstacles_error = self.obstacles_error.clone();
+        let mut obstacles_timestamp = self.obstacles_timestamp;
         
         match action {
             AppAction::SensorDirectionUpdate(dir) => {
@@ -114,7 +140,33 @@ impl Reducible for AppState {
                 move_direction = dir;
                 move_direction_error = Some(e).into();
             },
-            _ => {}
+            AppAction::ObstaclesUpdate(v) => {
+                obstacles = v.into();
+                obstacles_error = None.into();
+                obstacles_timestamp = SystemTime::now();
+            }
+            AppAction::ObstaclesUpdateError(e) => {
+                obstacles_error = Some(e).into();
+                obstacles_timestamp = SystemTime::now();
+            },
+            AppAction::DistanceUpdate(d) => {
+                distance = d;
+                distance_error = None.into();
+                distance_timestamp = SystemTime::now();
+            },
+            AppAction::DistanceUpdateError(e) => {
+                distance_error = Some(e).into();
+                distance_timestamp = SystemTime::now();
+            },
+            AppAction::LinesUpdate(v) => {
+                lines = v.into();
+                lines_error = None.into();
+                lines_timestamp = SystemTime::now();
+            },
+            AppAction::LinesUpdateError(e) => {
+                lines_error = Some(e).into();
+                lines_timestamp = SystemTime::now();
+            }
         };
 
         let new_state = Self {
@@ -124,10 +176,13 @@ impl Reducible for AppState {
             move_direction_error,
             distance,
             distance_error,
+            distance_timestamp,
             lines,
             lines_error,
+            lines_timestamp,
             obstacles,
             obstacles_error,
+            obstacles_timestamp
         };
 
         debug!("Updated state: {:#?}", new_state);
@@ -196,7 +251,7 @@ pub fn app() -> Html {
         use_effect_with(sensor_direction, move |_| {
             trace!("[App] Scheduling sensor direction update.");
 
-            let _ = rover_service.borrow().look_at(
+            match rover_service.borrow().look_at(
                 - sensor_direction.0 as i16,
                 - sensor_direction.1 as i16,
                 Callback::from(move |status| match status {
@@ -208,7 +263,10 @@ pub fn app() -> Html {
                         trace!("[App] Rover look direction update succeeded.");
                     }
                 }),
-            );
+            ) {
+                Ok(_) => trace!("[App] Sensor direction update scheduled."),
+                Err(e) => error!("[App] Sensor direction update scheduling failed: {:?}", e)
+            };
         })
     }
     { // move direction
@@ -228,20 +286,92 @@ pub fn app() -> Html {
                 }
             };
 
-            let _ = rover_service.borrow().r#move(
+            match rover_service.borrow().r#move(
                 move_type,
                 speed,
                 Callback::from(move |status| match status {
                     Err(e) => {
-                        trace!("[App] Rover move direction update failed: {:?}", e);
+                        warn!("[App] Rover move direction update failed: {:?}", e);
                         state.dispatch(AppAction::MoveDirectionUpdateError(e, move_direction));
                     }
                     _ => {
                         trace!("[App] Rover move direction update succeeded.");
                     }
                 }),
-            );
+            ) {
+                Ok(_) => trace!("[App] Move direction update scheduled."),
+                Err(e) => error!("[App] Move direction update scheduling failed: {:?}", e)
+            };
         })
+    }
+    { // distance sensor
+        let rover_service = rover_service.clone();
+        let state = state.clone();
+        let distance_timestamp = state.distance_timestamp;
+
+        use_effect_with(distance_timestamp, move |_| {
+            trace!("[App] Scheduling distance sensor query.");
+
+            match rover_service.borrow().get_distance(Callback::from(move |status| match status {
+                Err(e) => {
+                    warn!("[App] Rover distance sensor query failed: {:?}", e);
+                    state.dispatch(AppAction::DistanceUpdateError(e));
+                }
+                Ok(result) => {
+                    trace!("[App] Rover distance sensor query succeeded.");
+                    state.dispatch(AppAction::DistanceUpdate(result));
+                }
+            })) {
+                Ok(_) => trace!("[App] Rover distance sensor query scheduled."),
+                Err(e) => error!("[App] Distance sensor query scheduling failed: {:?}", e)
+            };
+        });
+    }
+    { // lines sensor
+        let rover_service = rover_service.clone();
+        let state = state.clone();
+        let lines_timestamp = state.lines_timestamp;
+
+        use_effect_with(lines_timestamp, move |_| {
+            trace!("[App] Scheduling line sensors query.");
+
+            match rover_service.borrow().get_lines(Callback::from(move |status| match status {
+                Err(e) => {
+                    warn!("[App] Rover line sensors query failed: {:?}", e);
+                    state.dispatch(AppAction::LinesUpdateError(e));
+                }
+                Ok(result) => {
+                    trace!("[App] Rover line sensors query succeeded.");
+                    state.dispatch(AppAction::LinesUpdate(result));
+                }
+            })) {
+                Ok(_) => trace!("[App] Rover line sensors query scheduled."),
+                Err(e) => error!("[App] Line sensors query scheduling failed: {:?}", e)
+            };
+        });
+    }
+    { // obstacles sensor
+        let rover_service = rover_service.clone();
+        let state = state.clone();
+        let obstacles_timestamp = state.obstacles_timestamp;
+
+        use_effect_with(obstacles_timestamp, move |_| {
+            trace!("[App] Scheduling obstacle sensors query.");
+
+            match rover_service.borrow().get_obstacles(Callback::from(move |status| match status {
+                Err(e) => {
+                    warn!("[App] Rover obstacle sensors query failed: {:?}", e);
+                    state.dispatch(AppAction::ObstaclesUpdateError(e));
+                }
+                Ok(result) => {
+                    trace!("[App] Rover obstacle sensors query succeeded.");
+                    state.dispatch(AppAction::ObstaclesUpdate(result));
+                }
+            })) {
+                Ok(_) => trace!("[App] Rover obstacle sensors query scheduled."),
+                Err(e) => error!("[App] Obstacle sensors query scheduling failed: {:?}", e)
+            };
+        });
     }
 
     // define callbacks
@@ -279,6 +409,8 @@ pub fn app() -> Html {
             <SensorsData
                 left_obstacle={state.obstacles.get(0).unwrap_or(&false)}
                 right_obstacle={state.obstacles.get(1).unwrap_or(&false)}
+                left_line={state.lines.get(0).unwrap_or(&false)}
+                right_line={state.lines.get(1).unwrap_or(&false)}
                 distance={state.distance}
                 messages={extra_messages} />
             <div class="controls">
@@ -313,197 +445,3 @@ pub fn app() -> Html {
         </div>
     }
 }
-
-// use css_in_rust::Style;
-
-// use std::collections::hash_map::HashMap;
-// use std::time::Duration;
-// use yew::services::timeout::TimeoutService;
-// use yew::services::Task;
-// use yew::{html, Component, ComponentLink, Html, ShouldRender};
-// use yewtil::NeqAssign;
-//
-// use crate::components::direction_control::{
-//     DirectionControl, DirectionControlMode, DirectionModuleMode,
-// };
-// use crate::components::sensors_data::SensorsData;
-// use crate::services::rover_service::RoverService;
-//
-
-//
-
-//
-// pub struct App {
-//     link: ComponentLink<Self>,
-//     state: State,
-//     style: Style,
-//
-//     rover_service: RoverService,
-//     backend_tasks: HashMap<&'static str, Box<dyn Task>>,
-// }
-//
-// impl App {
-//
-//
-//
-//     fn update_distance(&mut self, new_distance: f32) -> ShouldRender {
-//         self.backend_tasks.remove(GET_DISTANCE_TASK);
-//         self.state.distance_error.take();
-//         self.reschedule_sensors_update();
-//         self.state.distance.neq_assign(new_distance)
-//     }
-//
-//     fn update_distance_error(&mut self, e: Error) -> ShouldRender {
-//         self.backend_tasks.remove(GET_DISTANCE_TASK);
-//         self.state.distance_error = Some(e);
-//         self.reschedule_sensors_update();
-//         true
-//     }
-//
-//     fn update_lines_state(&mut self, new_lines: Vec<bool>) -> ShouldRender {
-//         self.backend_tasks.remove(GET_LINES_TASK);
-//         self.state.lines_error.take();
-//         self.state.lines = new_lines;
-//         self.reschedule_sensors_update();
-//         true
-//     }
-//
-//     fn update_lines_error(&mut self, e: Error) -> ShouldRender {
-//         self.backend_tasks.remove(GET_LINES_TASK);
-//         self.state.lines_error = Some(e);
-//         self.reschedule_sensors_update();
-//         true
-//     }
-//
-//     fn update_obstacles_state(&mut self, new_obstacles: Vec<bool>) -> ShouldRender {
-//         self.backend_tasks.remove(GET_OBSTACLES_TASK);
-//         self.state.obstacles_error.take();
-//         self.state.obstacles = new_obstacles;
-//         self.reschedule_sensors_update();
-//         true
-//     }
-//
-//     fn update_obstacles_error(&mut self, e: Error) -> ShouldRender {
-//         self.backend_tasks.remove(GET_OBSTACLES_TASK);
-//         self.state.obstacles_error = Some(e);
-//         self.reschedule_sensors_update();
-//         true
-//     }
-//
-//     fn reschedule_sensors_update(&mut self) {
-//         if !self.backend_tasks.contains_key(GET_DISTANCE_TASK)
-//             && !self.backend_tasks.contains_key(GET_LINES_TASK)
-//             && !self.backend_tasks.contains_key(GET_OBSTACLES_TASK) {
-//             self.request_sensors_update();
-//         }
-//     }
-//
-//     fn request_sensors_update(&mut self) -> ShouldRender {
-//         match self
-//             .rover_service
-//             .get_distance(self.link.callback(|r| match r {
-//                 Ok(d) => Msg::DistanceUpdate(d),
-//                 Err(e) => Msg::DistanceUpdateError(e),
-//             })) {
-//             Ok(task) => {
-//                 self.backend_tasks.insert(GET_DISTANCE_TASK, Box::new(task));
-//             }
-//             Err(e) => {
-//                 self.link.send_message(Msg::DistanceUpdateError(anyhow!(
-//                     "Failed to request distance: {}",
-//                     e
-//                 )));
-//             }
-//         };
-//
-//         match self
-//             .rover_service
-//             .get_lines(self.link.callback(|r| match r {
-//                 Ok(ls) => Msg::LinesUpdate(ls),
-//                 Err(e) => Msg::LinesUpdateError(e),
-//             })) {
-//             Ok(task) => {
-//                 self.backend_tasks.insert(GET_LINES_TASK, Box::new(task));
-//             }
-//             Err(e) => {
-//                 self.link.send_message(Msg::LinesUpdateError(anyhow!(
-//                     "Failed to request line detections: {}",
-//                     e
-//                 )));
-//             }
-//         };
-//
-//         match self
-//             .rover_service
-//             .get_obstacles(self.link.callback(|r| match r {
-//                 Ok(os) => Msg::ObstaclesUpdate(os),
-//                 Err(e) => Msg::ObstaclesUpdateError(e),
-//             })) {
-//             Ok(task) => {
-//                 self.backend_tasks.insert(GET_OBSTACLES_TASK, Box::new(task));
-//             }
-//             Err(e) => {
-//                 self.link.send_message(Msg::ObstaclesUpdateError(anyhow!(
-//                     "Failed to request line detections: {}",
-//                     e
-//                 )));
-//             }
-//         };
-//
-//         false
-//     }
-// }
-//
-// impl Component for App {
-
-//
-//     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
-
-//
-//         let rover_service = RoverService::new("http://rover/api");
-//
-//         let sensor_update_handle = TimeoutService::spawn(
-//             Duration::from_secs(1),
-//             link.callback(|_| Msg::RequestSensors),
-//         );
-//
-//         let mut web_tasks = HashMap::<&str, Box<dyn Task>>::new();
-//         web_tasks.insert(REQUEST_SENSORS_TASK, Box::new(sensor_update_handle));
-//
-//         trace!("Created.");
-//
-//         App {
-//             link,
-//             state,
-//             style,
-//
-//             rover_service,
-//             backend_tasks: web_tasks,
-//         }
-//     }
-//
-//     fn update(&mut self, msg: Self::Message) -> ShouldRender {
-//         debug!("Processing message: {:#?}", msg);
-//
-//         let should_render = match msg {
-//             Msg::RequestSensors => self.request_sensors_update(),
-//             Msg::LinesUpdate(ls) => self.update_lines_state(ls),
-//             Msg::LinesUpdateError(e) => self.update_lines_error(e),
-//             Msg::ObstaclesUpdate(os) => self.update_obstacles_state(os),
-//             Msg::ObstaclesUpdateError(e) => self.update_obstacles_error(e),
-//             Msg::DistanceUpdate(d) => self.update_distance(d),
-//             Msg::DistanceUpdateError(e) => self.update_distance_error(e),
-//             Msg::SensorDirectionUpdate(sd) => self.update_sensor_direction(sd),
-//             Msg::SensorDirectionUpdateError(e, sd) => self.update_sensor_direction_error(e, sd),
-//             Msg::MoveDirectionUpdate(md) => self.update_move_direction(md),
-//         };
-//
-//         trace!(
-//             "{} re-render.",
-//             if should_render { "Skipping" } else { "Will" }
-//         );
-//
-//         true
-//     }
-
-// }
