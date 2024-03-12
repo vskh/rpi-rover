@@ -10,6 +10,12 @@ pub struct SensorsDataProps {
     pub right_obstacle: bool,
 
     #[prop_or_default]
+    pub left_line: bool,
+
+    #[prop_or_default]
+    pub right_line: bool,
+
+    #[prop_or_default]
     pub distance: f32,
 
     #[prop_or(vec![])]
@@ -35,19 +41,35 @@ pub fn sensors_data(props: &SensorsDataProps) -> Html {
             .distance {
                 flex-grow: 1;
                 text-align: center;
+                min-width: 100px;
             }
 
             .obstacle {
-                min-width: 30px;
+                width: 140px;
                 text-align: center;
                 flex-grow: 0;
+            }
+
+            .line {
+                width: 90px;
+                text-align: center;
+                flex-grow: 1;
+            }
+
+            .line-left {
+                text-align: right;
+            }
+
+            .line-right {
+                text-align: left;
             }
         "
     );
 
     html! {
         <div class={style}>
-            <div class="obstacle">{format!("{}", if props.left_obstacle { ">>>" } else { "|" })}</div>
+            <div class="obstacle">{format!("{}", if props.left_obstacle { "OBSTACLE >>>" } else { "|" })}</div>
+            <div class="line line-left">{format!("{}", if props.left_line { "|LINE|" } else { "<\u{00a0}\u{00a0}\u{00a0}\u{00a0}>" })}</div>
             <div class="main">
                 <div class="distance">{format!("{} mm", props.distance)}</div>
                 <div class="error">
@@ -56,7 +78,8 @@ pub fn sensors_data(props: &SensorsDataProps) -> Html {
                     }
                 </div>
             </div>
-            <div class="obstacle">{format!("{}", if props.right_obstacle { "<<<" } else { "|" })}</div>
+            <div class="line line-right">{format!("{}", if props.right_line { "|LINE|" } else { "<\u{00a0}\u{00a0}\u{00a0}\u{00a0}>" })}</div>
+            <div class="obstacle">{format!("{}", if props.right_obstacle { "<<< OBSTACLE" } else { "|" })}</div>
         </div>
     }
 }
