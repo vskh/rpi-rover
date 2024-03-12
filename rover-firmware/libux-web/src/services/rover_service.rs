@@ -1,20 +1,19 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::future;
 use std::rc::Rc;
 
 use anyhow::anyhow;
-use gloo_net::http::Request;
+use gloo_net::http::{Method, RequestBuilder};
 use log::{error, trace, warn};
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use web_sys::wasm_bindgen::JsValue;
 use web_sys::AbortController;
 use yew::platform::spawn_local;
 use yew::Callback;
 
-use libapi_http::api::{LookRequest, MoveRequest, MoveType, SenseType, ValueResponse};
+use libapi_http::api::{LookRequest, MoveRequest, MoveType, SenseType};
 use libutil::helpers::calc_hash;
 
 pub struct RoverService {
@@ -52,7 +51,7 @@ impl RoverService {
         let api_endpoint = format!("{}/move", self.rover_api_endpoint);
         let data = MoveRequest { r#type, speed };
 
-        self.schedule_request(&api_endpoint, &data, oncomplete)
+        self.schedule_request(&api_endpoint, Method::POST, &data, oncomplete)
     }
 
     pub fn look_at(
@@ -64,7 +63,7 @@ impl RoverService {
         let api_endpoint = format!("{}/look", self.rover_api_endpoint);
         let data = LookRequest { h, v };
 
-        self.schedule_request(&api_endpoint, &data, oncomplete)
+        self.schedule_request(&api_endpoint, Method::POST, &data, oncomplete)
     }
 
     pub fn get_distance(
@@ -102,12 +101,13 @@ impl RoverService {
             SenseType::Obstacles => format!("{}/sense/obstacles", self.rover_api_endpoint),
         };
 
-        self.schedule_request(&api_endpoint, &(), oncomplete)
+        self.schedule_request(&api_endpoint, Method::GET,&(), oncomplete)
     }
 
     fn schedule_request<TRequest, TResponse>(
         &self,
         api_endpoint: &str,
+        method: Method,
         request_data: &TRequest,
         oncomplete: Callback<Result<TResponse, RoverServiceError>>,
     ) -> Result<Rc<AbortController>, RoverServiceError>
@@ -140,10 +140,14 @@ impl RoverService {
         let signal = controller.signal();
 
         // prepare request
-        let req = Request::post(api_endpoint)
-            .abort_signal(Some(&signal))
-            .json(request_data)
-            .map_err(Self::map_gloo_err)?;
+        let builder = RequestBuilder::new(api_endpoint)
+            .method(method.clone())
+            .abort_signal(Some(&signal));
+        let req = match method {
+            Method::GET | Method::HEAD | Method::OPTIONS | Method::DELETE => builder.build().map_err(Self::map_gloo_err),
+            Method::POST | Method::PUT | Method::PATCH => builder.json(request_data).map_err(Self::map_gloo_err),
+            _ => Err(anyhow!("Unsupported method: {}", method))
+        }?;
 
         // launch async task
         // any error within async scope cannot propagate directly to method return and
