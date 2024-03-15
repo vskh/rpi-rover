@@ -9,6 +9,7 @@ futures = "0.3.30"
 config = "0.14.0"
 log = "0.4.21"
 actix-web = "4.5.1"
+actix-web-actors = "4.3.0"
 actix-rt = "2.9.0"
 serde = "1.0.197"
 libapi-http = { path = "../libapi-http" }

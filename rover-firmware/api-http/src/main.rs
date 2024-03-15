@@ -11,6 +11,7 @@ mod app;
 mod look_api;
 mod move_api;
 mod sense_api;
+mod ws_api;
 
 const CONFIG_FILE: &str = "Config.toml";
 
