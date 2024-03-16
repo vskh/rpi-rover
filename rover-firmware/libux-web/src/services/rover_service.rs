@@ -13,7 +13,7 @@ use web_sys::AbortController;
 use yew::platform::spawn_local;
 use yew::Callback;
 
-use libapi_http::api::{LookRequest, MoveRequest, MoveType, SenseType};
+use libapi_http::api::{LookRequest, MoveRequest, MoveType, SenseType, ValueResponse};
 use libutil::helpers::calc_hash;
 
 pub struct RoverService {
@@ -21,10 +21,10 @@ pub struct RoverService {
     pending_requests: Rc<RefCell<HashMap<u64, Rc<AbortController>>>>,
 }
 
-type RoverServiceError = anyhow::Error;
+pub type RoverServiceError = anyhow::Error;
 
-type Status<T = ()> = Result<T, RoverServiceError>;
-type PendingStatus = Result<Rc<AbortController>, RoverServiceError>;
+pub type Status<T = ()> = Result<T, RoverServiceError>;
+pub type PendingStatus = Result<Rc<AbortController>, RoverServiceError>;
 
 impl RoverService {
     pub fn new(endpoint: &str) -> Self {
@@ -68,21 +68,21 @@ impl RoverService {
 
     pub fn get_distance(
         &self,
-        oncomplete: Callback<Status<f32>>,
+        oncomplete: Callback<Status<ValueResponse<f32>>>,
     ) -> PendingStatus {
         self.sense(SenseType::Distance, oncomplete)
     }
 
     pub fn get_lines(
         &self,
-        oncomplete: Callback<Status<Vec<bool>>>,
+        oncomplete: Callback<Status<ValueResponse<Vec<bool>>>>,
     ) -> PendingStatus {
         self.sense(SenseType::Lines, oncomplete)
     }
 
     pub fn get_obstacles(
         &self,
-        oncomplete: Callback<Status<Vec<bool>>>,
+        oncomplete: Callback<Status<ValueResponse<Vec<bool>>>>,
     ) -> PendingStatus {
         self.sense(SenseType::Obstacles, oncomplete)
     }

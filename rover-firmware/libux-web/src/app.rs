@@ -6,13 +6,13 @@ use stylist::yew::use_style;
 use web_time::SystemTime;
 use yew::prelude::*;
 
-use libapi_http::api::MoveType;
+use libapi_http::api::{MoveType, ValueResponse};
 
 use crate::components::direction_control::{
     DirectionControl, DirectionControlMode, DirectionModuleMode,
 };
 use crate::components::sensors_data::SensorsData;
-use crate::services::rover_service::RoverService;
+use crate::services::rover_service::{RoverService, Status};
 
 #[derive(Debug)]
 pub enum AppAction {
@@ -42,7 +42,7 @@ pub struct AppState {
     pub lines_timestamp: SystemTime,
     pub obstacles: Rc<Vec<bool>>,
     pub obstacles_error: Rc<Option<Error>>,
-    pub obstacles_timestamp: SystemTime
+    pub obstacles_timestamp: SystemTime,
 }
 
 impl AppState {
@@ -98,7 +98,7 @@ impl Default for AppState {
             lines_timestamp: SystemTime::UNIX_EPOCH,
             obstacles: Default::default(),
             obstacles_error: Default::default(),
-            obstacles_timestamp: SystemTime::UNIX_EPOCH
+            obstacles_timestamp: SystemTime::UNIX_EPOCH,
         }
     }
 }
@@ -108,7 +108,7 @@ impl Reducible for AppState {
 
     fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
         trace!("Processing dispatched action: {:?}", action);
-        
+
         let mut sensor_direction = self.sensor_direction.clone();
         let mut sensor_direction_error = self.sensor_direction_error.clone();
         let mut move_direction = self.move_direction.clone();
@@ -122,24 +122,24 @@ impl Reducible for AppState {
         let mut obstacles = self.obstacles.clone();
         let mut obstacles_error = self.obstacles_error.clone();
         let mut obstacles_timestamp = self.obstacles_timestamp;
-        
+
         match action {
             AppAction::SensorDirectionUpdate(dir) => {
                 sensor_direction = dir;
                 sensor_direction_error = None.into();
-            },
+            }
             AppAction::SensorDirectionUpdateError(e, dir) => {
                 sensor_direction = dir;
                 sensor_direction_error = Some(e).into();
-            },
+            }
             AppAction::MoveDirectionUpdate(dir) => {
                 move_direction = dir;
                 move_direction_error = None.into();
-            },
+            }
             AppAction::MoveDirectionUpdateError(e, dir) => {
                 move_direction = dir;
                 move_direction_error = Some(e).into();
-            },
+            }
             AppAction::ObstaclesUpdate(v) => {
                 obstacles = v.into();
                 obstacles_error = None.into();
@@ -148,21 +148,21 @@ impl Reducible for AppState {
             AppAction::ObstaclesUpdateError(e) => {
                 obstacles_error = Some(e).into();
                 obstacles_timestamp = SystemTime::now();
-            },
+            }
             AppAction::DistanceUpdate(d) => {
                 distance = d;
                 distance_error = None.into();
                 distance_timestamp = SystemTime::now();
-            },
+            }
             AppAction::DistanceUpdateError(e) => {
                 distance_error = Some(e).into();
                 distance_timestamp = SystemTime::now();
-            },
+            }
             AppAction::LinesUpdate(v) => {
                 lines = v.into();
                 lines_error = None.into();
                 lines_timestamp = SystemTime::now();
-            },
+            }
             AppAction::LinesUpdateError(e) => {
                 lines_error = Some(e).into();
                 lines_timestamp = SystemTime::now();
@@ -182,7 +182,7 @@ impl Reducible for AppState {
             lines_timestamp,
             obstacles,
             obstacles_error,
-            obstacles_timestamp
+            obstacles_timestamp,
         };
 
         debug!("Updated state: {:#?}", new_state);
@@ -243,7 +243,8 @@ pub fn app() -> Html {
     let state = use_reducer(AppState::default);
 
     // define side effects
-    { // sensor direction
+    {
+        // sensor direction
         let rover_service = rover_service.clone();
         let state = state.clone();
         let sensor_direction = state.sensor_direction;
@@ -252,8 +253,8 @@ pub fn app() -> Html {
             trace!("[App] Scheduling sensor direction update.");
 
             match rover_service.borrow().look_at(
-                - sensor_direction.0 as i16,
-                - sensor_direction.1 as i16,
+                -sensor_direction.0 as i16,
+                -sensor_direction.1 as i16,
                 Callback::from(move |status| match status {
                     Err(e) => {
                         trace!("[App] Rover look direction update failed: {:?}", e);
@@ -265,11 +266,12 @@ pub fn app() -> Html {
                 }),
             ) {
                 Ok(_) => trace!("[App] Sensor direction update scheduled."),
-                Err(e) => error!("[App] Sensor direction update scheduling failed: {:?}", e)
+                Err(e) => error!("[App] Sensor direction update scheduling failed: {:?}", e),
             };
         })
     }
-    { // move direction
+    {
+        // move direction
         let rover_service = rover_service.clone();
         let state = state.clone();
         let move_direction = state.move_direction;
@@ -300,11 +302,12 @@ pub fn app() -> Html {
                 }),
             ) {
                 Ok(_) => trace!("[App] Move direction update scheduled."),
-                Err(e) => error!("[App] Move direction update scheduling failed: {:?}", e)
+                Err(e) => error!("[App] Move direction update scheduling failed: {:?}", e),
             };
         })
     }
-    { // distance sensor
+    {
+        // distance sensor
         let rover_service = rover_service.clone();
         let state = state.clone();
         let distance_timestamp = state.distance_timestamp;
@@ -312,22 +315,25 @@ pub fn app() -> Html {
         use_effect_with(distance_timestamp, move |_| {
             trace!("[App] Scheduling distance sensor query.");
 
-            match rover_service.borrow().get_distance(Callback::from(move |status| match status {
-                Err(e) => {
-                    warn!("[App] Rover distance sensor query failed: {:?}", e);
-                    state.dispatch(AppAction::DistanceUpdateError(e));
-                }
-                Ok(result) => {
-                    trace!("[App] Rover distance sensor query succeeded.");
-                    state.dispatch(AppAction::DistanceUpdate(result));
-                }
-            })) {
+            match rover_service.borrow().get_distance(Callback::from(
+                move |status: Status<ValueResponse<f32>>| match status {
+                    Err(e) => {
+                        warn!("[App] Rover distance sensor query failed: {:?}", e);
+                        state.dispatch(AppAction::DistanceUpdateError(e));
+                    }
+                    Ok(result) => {
+                        trace!("[App] Rover distance sensor query succeeded.");
+                        state.dispatch(AppAction::DistanceUpdate(result.value));
+                    }
+                },
+            )) {
                 Ok(_) => trace!("[App] Rover distance sensor query scheduled."),
-                Err(e) => error!("[App] Distance sensor query scheduling failed: {:?}", e)
+                Err(e) => error!("[App] Distance sensor query scheduling failed: {:?}", e),
             };
         });
     }
-    { // lines sensor
+    {
+        // lines sensor
         let rover_service = rover_service.clone();
         let state = state.clone();
         let lines_timestamp = state.lines_timestamp;
@@ -335,22 +341,25 @@ pub fn app() -> Html {
         use_effect_with(lines_timestamp, move |_| {
             trace!("[App] Scheduling line sensors query.");
 
-            match rover_service.borrow().get_lines(Callback::from(move |status| match status {
-                Err(e) => {
-                    warn!("[App] Rover line sensors query failed: {:?}", e);
-                    state.dispatch(AppAction::LinesUpdateError(e));
-                }
-                Ok(result) => {
-                    trace!("[App] Rover line sensors query succeeded.");
-                    state.dispatch(AppAction::LinesUpdate(result));
-                }
-            })) {
+            match rover_service.borrow().get_lines(Callback::from(
+                move |status: Status<ValueResponse<Vec<bool>>>| match status {
+                    Err(e) => {
+                        warn!("[App] Rover line sensors query failed: {:?}", e);
+                        state.dispatch(AppAction::LinesUpdateError(e));
+                    }
+                    Ok(result) => {
+                        trace!("[App] Rover line sensors query succeeded.");
+                        state.dispatch(AppAction::LinesUpdate(result.value));
+                    }
+                },
+            )) {
                 Ok(_) => trace!("[App] Rover line sensors query scheduled."),
-                Err(e) => error!("[App] Line sensors query scheduling failed: {:?}", e)
+                Err(e) => error!("[App] Line sensors query scheduling failed: {:?}", e),
             };
         });
     }
-    { // obstacles sensor
+    {
+        // obstacles sensor
         let rover_service = rover_service.clone();
         let state = state.clone();
         let obstacles_timestamp = state.obstacles_timestamp;
@@ -358,18 +367,20 @@ pub fn app() -> Html {
         use_effect_with(obstacles_timestamp, move |_| {
             trace!("[App] Scheduling obstacle sensors query.");
 
-            match rover_service.borrow().get_obstacles(Callback::from(move |status| match status {
-                Err(e) => {
-                    warn!("[App] Rover obstacle sensors query failed: {:?}", e);
-                    state.dispatch(AppAction::ObstaclesUpdateError(e));
-                }
-                Ok(result) => {
-                    trace!("[App] Rover obstacle sensors query succeeded.");
-                    state.dispatch(AppAction::ObstaclesUpdate(result));
-                }
-            })) {
+            match rover_service.borrow().get_obstacles(Callback::from(
+                move |status: Status<ValueResponse<Vec<bool>>>| match status {
+                    Err(e) => {
+                        warn!("[App] Rover obstacle sensors query failed: {:?}", e);
+                        state.dispatch(AppAction::ObstaclesUpdateError(e));
+                    }
+                    Ok(result) => {
+                        trace!("[App] Rover obstacle sensors query succeeded.");
+                        state.dispatch(AppAction::ObstaclesUpdate(result.value));
+                    }
+                },
+            )) {
                 Ok(_) => trace!("[App] Rover obstacle sensors query scheduled."),
-                Err(e) => error!("[App] Obstacle sensors query scheduling failed: {:?}", e)
+                Err(e) => error!("[App] Obstacle sensors query scheduling failed: {:?}", e),
             };
         });
     }
