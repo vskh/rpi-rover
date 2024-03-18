@@ -37,6 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .service(web::scope("/move").configure(move_api::config))
             .service(web::scope("/look").configure(look_api::config))
             .service(web::scope("/sense").configure(sense_api::config))
+            .service(web::scope("/ws").configure(ws_api::config))
     };
 
     HttpServer::new(app_factory)
