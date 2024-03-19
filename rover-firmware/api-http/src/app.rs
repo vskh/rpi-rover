@@ -3,7 +3,10 @@ use futures::lock::Mutex;
 use serde::Serialize;
 
 use libapi_http::api::ValueResponse;
+#[cfg(not(feature = "mock_upstream"))]
 use libapi_net::client::Client;
+#[cfg(feature = "mock_upstream")]
+use libapi_net::client::mock::Client;
 
 pub struct State {
     pub rover_client: Mutex<Client>,

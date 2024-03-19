@@ -17,3 +17,7 @@ libapi-http = { path = "../libapi-http" }
 libapi-net = { path = "../libapi-net" }
 libdriver = { path = "../libdriver" }
 libutil = { path = "../libutil" }
+
+[features]
+default = []
+mock_upstream = ["libapi-net/mock_client"]

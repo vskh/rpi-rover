@@ -1143,6 +1143,7 @@ dependencies = [
  "futures",
  "libdriver",
  "log",
+ "rand",
  "serde",
  "thiserror",
  "tokio",

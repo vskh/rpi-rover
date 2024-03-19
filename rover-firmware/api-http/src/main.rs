@@ -4,7 +4,10 @@ use actix_rt;
 use actix_web::{web, App, HttpServer};
 use log::info;
 
+#[cfg(not(feature = "mock_upstream"))]
 use libapi_net::client::Client;
+#[cfg(feature = "mock_upstream")]
+use libapi_net::client::mock::Client;
 use libutil::app::bootstrap;
 
 mod app;

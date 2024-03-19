@@ -215,3 +215,82 @@ impl AsyncSensor for Client {
         self.exchange(msg, process_sense_response).await
     }
 }
+
+#[cfg(feature = "mock_client")]
+pub mod mock {
+    use std::future;
+    use rand::Rng;
+    use async_trait::async_trait;
+    use tokio::net::ToSocketAddrs;
+    use libdriver::api::{AsyncLooker, AsyncMover, AsyncSensor};
+    use crate::Error;
+
+    pub struct Client {}
+
+    impl Client {
+        pub async fn new<T: ToSocketAddrs>(_net_api_address: T) -> crate::Result<Client> {
+            future::ready(Ok(Client {})).await
+        }
+
+        pub async fn reconnect<T: ToSocketAddrs>(&mut self, _net_api_address: T) -> crate::Result<()> {
+            future::ready(Ok(())).await
+        }
+    }
+
+    #[async_trait]
+    impl AsyncMover for Client {
+        type Error = Error;
+
+        async fn stop(&mut self) -> crate::Result<()> {
+            future::ready(Ok(())).await
+        }
+
+        async fn move_forward(&mut self, _speed: u8) -> crate::Result<()> {
+            future::ready(Ok(())).await
+        }
+
+        async fn move_backward(&mut self, _speed: u8) -> crate::Result<()> {
+            future::ready(Ok(())).await
+        }
+
+        async fn spin_right(&mut self, _speed: u8) -> crate::Result<()> {
+            future::ready(Ok(())).await
+        }
+
+        async fn spin_left(&mut self, _speed: u8) -> crate::Result<()> {
+            future::ready(Ok(())).await
+        }
+    }
+
+    #[async_trait]
+    impl AsyncLooker for Client {
+        type Error = Error;
+
+        async fn look_at(&mut self, _h: i16, _v: i16) -> crate::Result<()> {
+            future::ready(Ok(())).await
+        }
+    }
+
+    #[async_trait]
+    impl AsyncSensor for Client {
+        type Error = Error;
+
+        async fn get_obstacles(&self) -> crate::Result<Vec<bool>> {
+            let mut rng = rand::thread_rng();
+            let r = vec![rng.gen_bool(0.5), rng.gen_bool(0.5)];
+            Ok(r)
+        }
+
+        async fn get_lines(&self) -> crate::Result<Vec<bool>> {
+            let mut rng = rand::thread_rng();
+            let r = vec![rng.gen_bool(0.5), rng.gen_bool(0.5)];
+            Ok(r)
+        }
+
+        async fn scan_distance(&mut self) -> crate::Result<f32> {
+            let mut rng = rand::thread_rng();
+            let r: f32 = rng.gen();
+            Ok(r)
+        }
+    }
+}
