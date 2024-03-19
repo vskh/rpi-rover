@@ -21,6 +21,7 @@ impl Actor for WebSocket {
 
 impl StreamHandler<Result<Message, ProtocolError>> for WebSocket {
     fn handle(&mut self, item: Result<Message, ProtocolError>, ctx: &mut Self::Context) {
+        trace!("Handling web-socket item: {:?}", item);
         match item {
             Ok(Message::Ping(msg)) => ctx.pong(&msg),
             Ok(Message::Text(text)) => ctx.text(text),
@@ -30,7 +31,7 @@ impl StreamHandler<Result<Message, ProtocolError>> for WebSocket {
     }
 }
 
-#[get("/")]
+#[get("")]
 pub async fn index(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, Error> {
     let ws_actor = WebSocket::new();
     let response = ws::start(ws_actor, &req, stream);
