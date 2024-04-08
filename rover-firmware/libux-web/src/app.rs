@@ -244,6 +244,14 @@ pub fn app() -> Html {
 
     // define side effects
     {
+        // establish web-socket connection
+        let rover_service = rover_service.clone();
+        use_effect(move |_| {
+            // rover_service.connect();
+            // || rover_service.disconnect();
+        });
+    }
+    {
         // sensor direction
         let rover_service = rover_service.clone();
         let state = state.clone();
