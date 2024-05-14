@@ -21,6 +21,8 @@ pub trait Looker {
 
     fn look_at(&mut self, h: i16, v: i16) -> Result<(), Self::Error>;
 
+    fn get_look_direction(&self) -> Result<(i16, i16), Self::Error>;
+
     fn reset(&mut self) -> Result<(), Self::Error> {
         Ok(())
     }
@@ -58,6 +60,8 @@ pub trait AsyncLooker {
     type Error: RoverError;
 
     async fn look_at(&mut self, h: i16, v: i16) -> Result<(), Self::Error>;
+
+    async fn get_look_direction(&self) -> Result<(i16, i16), Self::Error>;
 
     async fn reset(&mut self) -> Result<(), Self::Error> {
         Ok(())
