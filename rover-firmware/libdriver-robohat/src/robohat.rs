@@ -58,6 +58,7 @@ pub struct RobohatRover {
     right_line_pin: InputPin,
     left_motor: (SoftPwm, SoftPwm),
     right_motor: (SoftPwm, SoftPwm),
+    look_direction: (i16, i16)
 }
 
 impl RobohatRover {
@@ -86,6 +87,8 @@ impl RobohatRover {
             SoftPwm::new(pin_motor_r2, 10.0, 0.0),
         );
 
+        let look_direction = (0, 0);
+
         Ok(RobohatRover {
             sonar_pin,
             left_ir_pin,
@@ -94,6 +97,7 @@ impl RobohatRover {
             right_line_pin,
             left_motor,
             right_motor,
+            look_direction
         })
     }
 
@@ -225,6 +229,10 @@ impl api::Looker for RobohatRover {
         servo_ctl.write(format!("6={}\n", vpw).as_bytes())?;
 
         Ok(())
+    }
+
+    fn get_look_direction(&self) -> Result<(i16, i16)> {
+        Ok(self.look_direction)
     }
 }
 

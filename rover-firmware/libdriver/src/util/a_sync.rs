@@ -83,6 +83,14 @@ where
             .await
             .expect("Async wrapper error")
     }
+
+    async fn get_look_direction(&self) -> Result<(i16, i16), Self::Error> {
+        let looker_ref = Arc::clone(&self.0);
+
+        spawn_blocking(move || looker_ref.lock().unwrap().get_look_direction())
+            .await
+            .expect("Async wrapper error")
+    }
 }
 
 #[async_trait]

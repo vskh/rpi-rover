@@ -52,6 +52,11 @@ where
         let mut looker = self.0.lock().unwrap();
         looker.look_at(h, v)
     }
+
+    fn get_look_direction(&self) -> Result<(i16, i16), Self::Error> {
+        let mut looker = self.0.lock().unwrap();
+        looker.get_look_direction()
+    }
 }
 
 pub struct SensorPart<'a, T>(Arc<Mutex<&'a mut T>>)
