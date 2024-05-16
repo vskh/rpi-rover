@@ -3,11 +3,26 @@ pub mod data {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub enum ProtocolMessage {
-        MoveRequest(MoveRequest),
-        LookRequest(LookRequest),
-        SenseRequest(SenseRequest),
-        SenseResponse(SenseResponse),
-        StatusResponse(StatusResponse),
+        /// Request to move in given direction with given speed
+        MoveRequest(MoveData),
+
+        /// Request to look at given direction
+        LookRequest(LookData),
+
+        /// Request to see current look direction
+        LookDirectionRequest,
+
+        /// Response to the above
+        LookDirectionResponse(LookData),
+
+        /// Request to check the value of sensor
+        SenseRequest(SenseRequestData),
+
+        /// Response to the above
+        SenseResponse(SenseResponseData),
+
+        /// Response to requests that return no data (e.g. MoveRequest & LookRequest)
+        StatusResponse(StatusResponseData),
     }
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -19,34 +34,33 @@ pub mod data {
     }
 
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct MoveRequest {
+    pub struct MoveData {
         pub(crate) move_type: MoveType,
         pub(crate) speed: u8,
     }
 
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct LookRequest {
+    pub struct LookData {
         pub(crate) x: i16,
         pub(crate) y: i16,
     }
 
     #[derive(Debug, Serialize, Deserialize)]
-    pub enum SenseRequest {
+    pub enum SenseRequestData {
         Obstacle,
         Line,
         Distance,
     }
 
     #[derive(Debug, Serialize, Deserialize)]
-    pub enum SenseResponse {
+    pub enum SenseResponseData {
         Obstacle(Vec<bool>),
         Line(Vec<bool>),
         Distance(f32),
-        Error(String),
     }
 
     #[derive(Debug, Serialize, Deserialize)]
-    pub enum StatusResponse {
+    pub enum StatusResponseData {
         Success,
         Error(String),
     }

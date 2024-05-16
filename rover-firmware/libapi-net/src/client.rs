@@ -10,8 +10,8 @@ use async_trait::async_trait;
 use libdriver::api::{AsyncLooker, AsyncMover, AsyncSensor};
 
 use crate::contract::data::{
-    LookRequest, MoveRequest, MoveType, ProtocolMessage, SenseRequest, SenseResponse,
-    StatusResponse,
+    LookData, MoveData, MoveType, ProtocolMessage, SenseRequestData, SenseResponseData,
+    StatusResponseData,
 };
 use crate::{Error, Result};
 
@@ -87,8 +87,8 @@ impl Client {
     fn process_status(message: ProtocolMessage) -> Either<Result<()>, ProtocolMessage> {
         if let ProtocolMessage::StatusResponse(status) = message {
             Either::Left(match status {
-                StatusResponse::Success => Ok(()),
-                StatusResponse::Error(e) => Err(Error::Server(e)),
+                StatusResponseData::Success => Ok(()),
+                StatusResponseData::Error(e) => Err(Error::Server(e)),
             })
         } else {
             Either::Right(message)
@@ -101,7 +101,7 @@ impl AsyncMover for Client {
     type Error = Error;
 
     async fn stop(&mut self) -> Result<()> {
-        let msg = ProtocolMessage::MoveRequest(MoveRequest {
+        let msg = ProtocolMessage::MoveRequest(MoveData {
             move_type: MoveType::Forward,
             speed: 0,
         });
@@ -110,7 +110,7 @@ impl AsyncMover for Client {
     }
 
     async fn move_forward(&mut self, speed: u8) -> Result<()> {
-        let msg = ProtocolMessage::MoveRequest(MoveRequest {
+        let msg = ProtocolMessage::MoveRequest(MoveData {
             move_type: MoveType::Forward,
             speed,
         });
@@ -119,7 +119,7 @@ impl AsyncMover for Client {
     }
 
     async fn move_backward(&mut self, speed: u8) -> Result<()> {
-        let msg = ProtocolMessage::MoveRequest(MoveRequest {
+        let msg = ProtocolMessage::MoveRequest(MoveData {
             move_type: MoveType::Backward,
             speed,
         });
@@ -128,7 +128,7 @@ impl AsyncMover for Client {
     }
 
     async fn spin_right(&mut self, speed: u8) -> Result<()> {
-        let msg = ProtocolMessage::MoveRequest(MoveRequest {
+        let msg = ProtocolMessage::MoveRequest(MoveData {
             move_type: MoveType::SpinCW,
             speed,
         });
@@ -137,7 +137,7 @@ impl AsyncMover for Client {
     }
 
     async fn spin_left(&mut self, speed: u8) -> Result<()> {
-        let msg = ProtocolMessage::MoveRequest(MoveRequest {
+        let msg = ProtocolMessage::MoveRequest(MoveData {
             move_type: MoveType::SpinCCW,
             speed,
         });
@@ -151,9 +151,16 @@ impl AsyncLooker for Client {
     type Error = Error;
 
     async fn look_at(&mut self, h: i16, v: i16) -> Result<()> {
-        let msg = ProtocolMessage::LookRequest(LookRequest { x: h, y: v });
+        let msg = ProtocolMessage::LookRequest(LookData { x: h, y: v });
 
         self.exchange(msg, Self::process_status).await
+    }
+
+    async fn get_look_direction(&self) -> Result<(i16, i16)> {
+        // let msg = ProtocolMessage::LookDirectionRequest;
+        //
+        // self.exchange(msg, Self::process_status).await
+        todo!()
     }
 }
 
@@ -162,17 +169,13 @@ impl AsyncSensor for Client {
     type Error = Error;
 
     async fn get_obstacles(&self) -> Result<Vec<bool>> {
-        let msg = ProtocolMessage::SenseRequest(SenseRequest::Obstacle);
+        let msg = ProtocolMessage::SenseRequest(SenseRequestData::Obstacle);
 
         let process_sense_response = |message| {
-            if let ProtocolMessage::SenseResponse(sense) = message {
-                match sense {
-                    SenseResponse::Obstacle(obstacle_data) => Either::Left(Ok(obstacle_data)),
-                    SenseResponse::Error(e) => Either::Left(Err(Error::Server(e))),
-                    _ => Either::Right(ProtocolMessage::SenseResponse(sense)),
-                }
-            } else {
-                Either::Right(message)
+            match message {
+                ProtocolMessage::SenseResponse(SenseResponseData::Obstacle(obstacle_data)) => Either::Left(Ok(obstacle_data)),
+                ProtocolMessage::StatusResponse(StatusResponseData::Error(e)) => Either::Left(Err(Error::Server(e))),
+                _ => Either::Right(message)
             }
         };
 
@@ -180,17 +183,13 @@ impl AsyncSensor for Client {
     }
 
     async fn get_lines(&self) -> Result<Vec<bool>> {
-        let msg = ProtocolMessage::SenseRequest(SenseRequest::Line);
+        let msg = ProtocolMessage::SenseRequest(SenseRequestData::Line);
 
         let process_sense_response = |message| {
-            if let ProtocolMessage::SenseResponse(sense) = message {
-                match sense {
-                    SenseResponse::Line(line_data) => Either::Left(Ok(line_data)),
-                    SenseResponse::Error(e) => Either::Left(Err(Error::Server(e))),
-                    _ => Either::Right(ProtocolMessage::SenseResponse(sense)),
-                }
-            } else {
-                Either::Right(message)
+            match message {
+                ProtocolMessage::SenseResponse(SenseResponseData::Line(line_data)) => Either::Left(Ok(line_data)),
+                ProtocolMessage::StatusResponse(StatusResponseData::Error(e)) => Either::Left(Err(Error::Server(e))),
+                _ => Either::Right(message)
             }
         };
 
@@ -198,17 +197,13 @@ impl AsyncSensor for Client {
     }
 
     async fn scan_distance(&mut self) -> Result<f32> {
-        let msg = ProtocolMessage::SenseRequest(SenseRequest::Distance);
+        let msg = ProtocolMessage::SenseRequest(SenseRequestData::Distance);
 
         let process_sense_response = |message| {
-            if let ProtocolMessage::SenseResponse(sense) = message {
-                match sense {
-                    SenseResponse::Distance(distance) => Either::Left(Ok(distance)),
-                    SenseResponse::Error(e) => Either::Left(Err(Error::Server(e))),
-                    _ => Either::Right(ProtocolMessage::SenseResponse(sense)),
-                }
-            } else {
-                Either::Right(message)
+            match message {
+                ProtocolMessage::SenseResponse(SenseResponseData::Distance(distance)) => Either::Left(Ok(distance)),
+                ProtocolMessage::StatusResponse(StatusResponseData::Error(e)) => Either::Left(Err(Error::Server(e))),
+                _ => Either::Right(message)
             }
         };
 

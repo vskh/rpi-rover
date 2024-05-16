@@ -6,10 +6,10 @@ use tokio_util::codec::Decoder;
 
 use libdriver::api::{AsyncLooker, AsyncMover, AsyncSensor};
 
-use crate::contract::data::{
-    MoveType, ProtocolMessage, SenseRequest, SenseResponse, StatusResponse,
-};
 use crate::{Error, Result};
+use crate::contract::data::{
+    LookData, MoveType, ProtocolMessage, SenseRequestData, SenseResponseData, StatusResponseData,
+};
 
 pub struct Server<TMover, TLooker, TSensor>
 where
@@ -80,8 +80,8 @@ where
         E: std::fmt::Display,
     {
         ProtocolMessage::StatusResponse(match r {
-            Ok(_) => StatusResponse::Success,
-            Err(e) => StatusResponse::Error(e.to_string()),
+            Ok(_) => StatusResponseData::Success,
+            Err(e) => StatusResponseData::Error(e.to_string()),
         })
     }
 
@@ -141,7 +141,7 @@ where
                                 warn!("[{}] Requested operation is not implemented.", peer_address);
 
                                 channel
-                                    .send(ProtocolMessage::StatusResponse(StatusResponse::Error(
+                                    .send(ProtocolMessage::StatusResponse(StatusResponseData::Error(
                                         "Unsupported operation.".to_owned(),
                                     )))
                                     .await?;
@@ -160,7 +160,32 @@ where
                                 warn!("[{}] Requested operation is not implemented.", peer_address);
 
                                 channel
-                                    .send(ProtocolMessage::StatusResponse(StatusResponse::Error(
+                                    .send(ProtocolMessage::StatusResponse(StatusResponseData::Error(
+                                        "Unsupported operation.".to_owned(),
+                                    )))
+                                    .await?
+                            }
+                        }
+                        ProtocolMessage::LookDirectionRequest => {
+                            trace!(
+                                "[{}] Processing look direction request.",
+                                peer_address
+                            );
+
+                            if let Some(ref mut looker) = self.looker {
+                                let response = match looker.get_look_direction().await {
+                                    Ok((h, v)) => ProtocolMessage::LookDirectionResponse(LookData { x: h, y: v }),
+                                    Err(e) => ProtocolMessage::StatusResponse(StatusResponseData::Error(e.to_string()))
+                                };
+
+                                channel
+                                    .send(response)
+                                    .await?;
+                            } else {
+                                warn!("[{}] Requested operation is not implemented.", peer_address);
+
+                                channel
+                                    .send(ProtocolMessage::StatusResponse(StatusResponseData::Error(
                                         "Unsupported operation.".to_owned(),
                                     )))
                                     .await?
@@ -171,36 +196,35 @@ where
 
                             if let Some(ref mut sensor) = self.sensor {
                                 match r {
-                                    SenseRequest::Distance => {
-                                        let opresult = match sensor.scan_distance().await {
-                                            Ok(distance) => SenseResponse::Distance(distance),
-                                            Err(e) => SenseResponse::Error(e.to_string()),
+                                    SenseRequestData::Distance => {
+                                        let response = match sensor.scan_distance().await {
+                                            Ok(distance) => ProtocolMessage::SenseResponse(SenseResponseData::Distance(distance)),
+                                            Err(e) => ProtocolMessage::StatusResponse(StatusResponseData::Error(e.to_string())),
                                         };
 
                                         channel
-                                            .send(ProtocolMessage::SenseResponse(opresult))
+                                            .send(response)
                                             .await?;
                                     }
-                                    SenseRequest::Line => {
-                                        let opresult = match sensor.get_lines().await {
-                                            Ok(line_states) => SenseResponse::Line(line_states),
-                                            Err(e) => SenseResponse::Error(e.to_string()),
+                                    SenseRequestData::Line => {
+                                        let response = match sensor.get_lines().await {
+                                            Ok(line_states) => ProtocolMessage::SenseResponse(SenseResponseData::Line(line_states)),
+                                            Err(e) => ProtocolMessage::StatusResponse(StatusResponseData::Error(e.to_string())),
                                         };
 
                                         channel
-                                            .send(ProtocolMessage::SenseResponse(opresult))
+                                            .send(response)
                                             .await?;
                                     }
-                                    SenseRequest::Obstacle => {
-                                        let opresult = match sensor.get_obstacles().await {
-                                            Ok(obstacle_states) => {
-                                                SenseResponse::Obstacle(obstacle_states)
-                                            }
-                                            Err(e) => SenseResponse::Error(e.to_string()),
+                                    SenseRequestData::Obstacle => {
+                                        let response = match sensor.get_obstacles().await {
+                                            Ok(obstacle_states) =>
+                                                ProtocolMessage::SenseResponse(SenseResponseData::Obstacle(obstacle_states)),
+                                            Err(e) => ProtocolMessage::StatusResponse(StatusResponseData::Error(e.to_string())),
                                         };
 
                                         channel
-                                            .send(ProtocolMessage::SenseResponse(opresult))
+                                            .send(response)
                                             .await?;
                                     }
                                 }
@@ -208,7 +232,7 @@ where
                                 warn!("[{}] Requested operation is not implemented.", peer_address);
 
                                 channel
-                                    .send(ProtocolMessage::SenseResponse(SenseResponse::Error(
+                                    .send(ProtocolMessage::StatusResponse(StatusResponseData::Error(
                                         "Unsupported operation.".to_owned(),
                                     )))
                                     .await?
