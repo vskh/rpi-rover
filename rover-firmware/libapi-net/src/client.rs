@@ -157,10 +157,17 @@ impl AsyncLooker for Client {
     }
 
     async fn get_look_direction(&self) -> Result<(i16, i16)> {
-        // let msg = ProtocolMessage::LookDirectionRequest;
-        //
-        // self.exchange(msg, Self::process_status).await
-        todo!()
+        let msg = ProtocolMessage::LookDirectionRequest;
+
+        let process_look_direction_response = |message| {
+            match message {
+                ProtocolMessage::LookDirectionResponse(LookData { x, y }) => Either::Left(Ok((x, y))),
+                ProtocolMessage::StatusResponse(StatusResponseData::Error(e)) => Either::Left(Err(Error::Server(e))),
+                _ => Either::Right(message)
+            }
+        };
+
+        self.exchange(msg, process_look_direction_response).await
     }
 }
 
