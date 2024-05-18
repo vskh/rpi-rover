@@ -54,7 +54,7 @@ where
     }
 
     fn get_look_direction(&self) -> Result<(i16, i16), Self::Error> {
-        let mut looker = self.0.lock().unwrap();
+        let looker = self.0.lock().unwrap();
         looker.get_look_direction()
     }
 }
