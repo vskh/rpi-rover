@@ -228,6 +228,8 @@ impl api::Looker for RobohatRover {
         servo_ctl.write(format!("7={}\n", hpw).as_bytes())?;
         servo_ctl.write(format!("6={}\n", vpw).as_bytes())?;
 
+        self.look_direction = (h, v);
+
         Ok(())
     }
 
