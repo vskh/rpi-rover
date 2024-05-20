@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::api::{Looker, Mover, Sensor};
+use crate::api::{Looker, MoveDirectionVector, Mover, Sensor};
 
 pub struct MoverPart<'a, T>(Arc<Mutex<&'a mut T>>)
 where
@@ -35,6 +35,11 @@ where
     fn spin_left(&mut self, speed: u8) -> Result<(), T::Error> {
         let mut mover = self.0.lock().unwrap();
         mover.spin_left(speed)
+    }
+
+    fn get_move_direction(&self) -> Result<MoveDirectionVector, Self::Error> {
+        let mover = self.0.lock().unwrap();
+        mover.get_move_direction()
     }
 }
 

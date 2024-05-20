@@ -10,3 +10,4 @@ tokio = { version = "1.36.0", features = ["default", "rt"] }
 async-trait = "0.1.77"
 anyhow = "1.0.80"
 thiserror = "1.0.57"
+serde = { version = "1.0.197", features = ["derive"] }

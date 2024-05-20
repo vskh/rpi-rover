@@ -1,6 +1,49 @@
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 
 use crate::RoverError;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum MoveType {
+    Forward,
+    Backward,
+    SpinCW,
+    SpinCCW,
+}
+
+pub struct MoveDirectionVector {
+    l: i16,
+    r: i16,
+}
+
+impl MoveDirectionVector {
+    pub fn get_raw_motors_speed(&self) -> (i16, i16) {
+        (self.l, self.r)
+    }
+
+    pub fn get_direction(&self) -> Option<MoveType> {
+        if self.l == 0 && self.r == 0 {
+            None
+        } else {
+            Some(match (self.l > 0, self.r > 0, self.l == self.r) {
+                (true, true, _) => MoveType::Forward,
+                (false, false, _) => MoveType::Backward,
+                (true, false, _) => MoveType::SpinCW,
+                (false, true, _) => MoveType::SpinCCW,
+            })
+        }
+    }
+
+    pub fn get_speed(&self) -> u8 {
+        match self.get_direction() {
+            None => 0,
+            Some(mt) => match mt {
+                MoveType::Forward | MoveType::Backward => ((self.l + self.r) / 2).abs() as u8,
+                MoveType::SpinCW | MoveType::SpinCCW => ((self.l.abs() + self.r.abs()) / 2) as u8
+            },
+        }
+    }
+}
 
 pub trait Mover {
     type Error: RoverError;
@@ -10,6 +53,8 @@ pub trait Mover {
     fn move_backward(&mut self, speed: u8) -> Result<(), Self::Error>;
     fn spin_right(&mut self, speed: u8) -> Result<(), Self::Error>;
     fn spin_left(&mut self, speed: u8) -> Result<(), Self::Error>;
+
+    fn get_move_direction(&self) -> Result<MoveDirectionVector, Self::Error>;
 
     fn reset(&mut self) -> Result<(), Self::Error> {
         Ok(())
