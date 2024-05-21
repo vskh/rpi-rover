@@ -1,5 +1,6 @@
 pub mod data {
     use serde::{Deserialize, Serialize};
+    use libdriver::api::MoveType;
 
     #[derive(Debug, Serialize, Deserialize)]
     pub enum ProtocolMessage {
@@ -23,14 +24,6 @@ pub mod data {
 
         /// Response to requests that return no data (e.g. MoveRequest & LookRequest)
         StatusResponse(StatusResponseData),
-    }
-
-    #[derive(Debug, Serialize, Deserialize)]
-    pub enum MoveType {
-        Forward,
-        Backward,
-        SpinCW,
-        SpinCCW,
     }
 
     #[derive(Debug, Serialize, Deserialize)]
