@@ -43,6 +43,10 @@ impl MoveDirectionVector {
             },
         }
     }
+
+    pub fn update(&mut self, direction: (i16, i16)) {
+        (self.l, self.r) = direction;
+    }
 }
 
 pub trait Mover {
