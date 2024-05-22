@@ -17,6 +17,13 @@ pub struct MoveDirectionVector {
 }
 
 impl MoveDirectionVector {
+    pub fn new(init_direction: (i16, i16)) -> Self {
+        MoveDirectionVector {
+            l: init_direction.0,
+            r: init_direction.1
+        }
+    }
+
     pub fn get_raw_motors_speed(&self) -> (i16, i16) {
         (self.l, self.r)
     }
