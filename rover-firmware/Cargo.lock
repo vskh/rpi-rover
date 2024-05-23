@@ -1164,6 +1164,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "futures",
+ "serde",
  "thiserror",
  "tokio",
 ]
