@@ -6,6 +6,7 @@ use std::time::{Duration, SystemTime};
 use rppal::gpio::{Gpio, InputPin, IoPin, Level, Mode};
 
 use libdriver::{api, util};
+use libdriver::api::RoverMoveDirection;
 use libutil::SoftPwm;
 
 use crate::{Error, Result};
@@ -58,6 +59,7 @@ pub struct RobohatRover {
     right_line_pin: InputPin,
     left_motor: (SoftPwm, SoftPwm),
     right_motor: (SoftPwm, SoftPwm),
+    move_direction: RoverMoveDirection,
     look_direction: (i16, i16)
 }
 
@@ -87,6 +89,7 @@ impl RobohatRover {
             SoftPwm::new(pin_motor_r2, 10.0, 0.0),
         );
 
+        let move_direction_vector = RoverMoveDirection::new((0, 0));
         let look_direction = (0, 0);
 
         Ok(RobohatRover {
@@ -97,6 +100,7 @@ impl RobohatRover {
             right_line_pin,
             left_motor,
             right_motor,
+            move_direction: move_direction_vector,
             look_direction
         })
     }
@@ -179,32 +183,55 @@ impl api::Mover for RobohatRover {
 
     fn stop(&mut self) -> Result<()> {
         RobohatRover::set_motor_speed(&mut self.left_motor, 0, false)?;
+        self.move_direction.update(Some(0), None);
+
         RobohatRover::set_motor_speed(&mut self.right_motor, 0, false)?;
+        self.move_direction.update(None, Some(0));
+
         Ok(())
     }
 
     fn move_forward(&mut self, speed: u8) -> Result<()> {
         RobohatRover::set_motor_speed(&mut self.left_motor, speed, true)?;
+        self.move_direction.update(Some(speed as i16), None);
+
         RobohatRover::set_motor_speed(&mut self.right_motor, speed, true)?;
+        self.move_direction.update(None, Some(speed as i16));
+
         Ok(())
     }
 
     fn move_backward(&mut self, speed: u8) -> Result<()> {
         RobohatRover::set_motor_speed(&mut self.left_motor, speed, false)?;
+        self.move_direction.update(Some(- (speed as i16)), None);
+
         RobohatRover::set_motor_speed(&mut self.right_motor, speed, false)?;
+        self.move_direction.update(None, Some(- (speed as i16)));
+
         Ok(())
     }
 
     fn spin_right(&mut self, speed: u8) -> Result<()> {
         RobohatRover::set_motor_speed(&mut self.left_motor, speed, true)?;
+        self.move_direction.update(Some(speed as i16), None);
+
         RobohatRover::set_motor_speed(&mut self.right_motor, speed, false)?;
+        self.move_direction.update(None, Some(- (speed as i16)));
         Ok(())
     }
 
     fn spin_left(&mut self, speed: u8) -> Result<()> {
         RobohatRover::set_motor_speed(&mut self.left_motor, speed, false)?;
+        self.move_direction.update(Some(- (speed as i16)), None);
+
         RobohatRover::set_motor_speed(&mut self.right_motor, speed, true)?;
+        self.move_direction.update(None, Some(speed as i16));
+
         Ok(())
+    }
+
+    fn get_move_direction(&self) -> std::result::Result<RoverMoveDirection, Self::Error> {
+        Ok(self.move_direction)
     }
 
     fn reset(&mut self) -> Result<()> {

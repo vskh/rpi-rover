@@ -11,14 +11,15 @@ pub enum MoveType {
     SpinCCW,
 }
 
-pub struct MoveDirectionVector {
+#[derive(Copy, Clone, Debug)]
+pub struct RoverMoveDirection {
     l: i16,
     r: i16,
 }
 
-impl MoveDirectionVector {
+impl RoverMoveDirection {
     pub fn new(init_direction: (i16, i16)) -> Self {
-        MoveDirectionVector {
+        RoverMoveDirection {
             l: init_direction.0,
             r: init_direction.1
         }
@@ -51,8 +52,14 @@ impl MoveDirectionVector {
         }
     }
 
-    pub fn update(&mut self, direction: (i16, i16)) {
-        (self.l, self.r) = direction;
+    pub fn update(&mut self, l: Option<i16>, r: Option<i16>) {
+        if let Some(s) = l {
+            self.l = s;
+        }
+
+        if let Some(s) = r {
+            self.r = s;
+        }
     }
 }
 
@@ -65,7 +72,7 @@ pub trait Mover {
     fn spin_right(&mut self, speed: u8) -> Result<(), Self::Error>;
     fn spin_left(&mut self, speed: u8) -> Result<(), Self::Error>;
 
-    fn get_move_direction(&self) -> Result<MoveDirectionVector, Self::Error>;
+    fn get_move_direction(&self) -> Result<RoverMoveDirection, Self::Error>;
 
     fn reset(&mut self) -> Result<(), Self::Error> {
         Ok(())
