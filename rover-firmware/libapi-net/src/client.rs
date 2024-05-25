@@ -7,10 +7,10 @@ use tokio_serde_cbor::Codec;
 use tokio_util::codec::{Decoder, Framed};
 
 use async_trait::async_trait;
-use libdriver::api::{AsyncLooker, AsyncMover, AsyncSensor};
+use libdriver::api::{AsyncLooker, AsyncMover, AsyncSensor, MoveType};
 
 use crate::contract::data::{
-    LookData, MoveData, MoveType, ProtocolMessage, SenseRequestData, SenseResponseData,
+    LookData, MoveData, ProtocolMessage, SenseRequestData, SenseResponseData,
     StatusResponseData,
 };
 use crate::{Error, Result};

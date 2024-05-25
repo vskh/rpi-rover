@@ -4,11 +4,11 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_serde_cbor::Codec;
 use tokio_util::codec::Decoder;
 
-use libdriver::api::{AsyncLooker, AsyncMover, AsyncSensor};
+use libdriver::api::{AsyncLooker, AsyncMover, AsyncSensor, MoveType};
 
 use crate::{Error, Result};
 use crate::contract::data::{
-    LookData, MoveType, ProtocolMessage, SenseRequestData, SenseResponseData, StatusResponseData,
+    LookData, ProtocolMessage, SenseRequestData, SenseResponseData, StatusResponseData,
 };
 
 pub struct Server<TMover, TLooker, TSensor>
