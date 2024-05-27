@@ -3,64 +3,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::RoverError;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub enum MoveType {
-    Forward,
-    Backward,
-    SpinCW,
-    SpinCCW,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub struct RoverMoveDirection {
-    l: i16,
-    r: i16,
-}
-
-impl RoverMoveDirection {
-    pub fn new(init_direction: (i16, i16)) -> Self {
-        RoverMoveDirection {
-            l: init_direction.0,
-            r: init_direction.1
-        }
-    }
-
-    pub fn get_raw_motors_speed(&self) -> (i16, i16) {
-        (self.l, self.r)
-    }
-
-    pub fn get_direction(&self) -> Option<MoveType> {
-        if self.l == 0 && self.r == 0 {
-            None
-        } else {
-            Some(match (self.l > 0, self.r > 0, self.l == self.r) {
-                (true, true, _) => MoveType::Forward,
-                (false, false, _) => MoveType::Backward,
-                (true, false, _) => MoveType::SpinCW,
-                (false, true, _) => MoveType::SpinCCW,
-            })
-        }
-    }
-
-    pub fn get_speed(&self) -> u8 {
-        match self.get_direction() {
-            None => 0,
-            Some(mt) => match mt {
-                MoveType::Forward | MoveType::Backward => ((self.l + self.r) / 2).abs() as u8,
-                MoveType::SpinCW | MoveType::SpinCCW => ((self.l.abs() + self.r.abs()) / 2) as u8
-            },
-        }
-    }
-
-    pub fn update(&mut self, l: Option<i16>, r: Option<i16>) {
-        if let Some(s) = l {
-            self.l = s;
-        }
-
-        if let Some(s) = r {
-            self.r = s;
-        }
-    }
+    Forward(u8),
+    Backward(u8),
+    SpinCW(u8),
+    SpinCCW(u8),
+    None
 }
 
 pub trait Mover {
@@ -72,7 +21,7 @@ pub trait Mover {
     fn spin_right(&mut self, speed: u8) -> Result<(), Self::Error>;
     fn spin_left(&mut self, speed: u8) -> Result<(), Self::Error>;
 
-    fn get_move_direction(&self) -> Result<RoverMoveDirection, Self::Error>;
+    fn get_move_type(&self) -> Result<MoveType, Self::Error>;
 
     fn reset(&mut self) -> Result<(), Self::Error> {
         Ok(())
@@ -112,6 +61,8 @@ pub trait AsyncMover {
     async fn move_backward(&mut self, speed: u8) -> Result<(), Self::Error>;
     async fn spin_right(&mut self, speed: u8) -> Result<(), Self::Error>;
     async fn spin_left(&mut self, speed: u8) -> Result<(), Self::Error>;
+
+    async fn get_move_type(&self) -> Result<MoveType, Self::Error>;
 
     async fn reset(&mut self) -> Result<(), Self::Error> {
         Ok(())

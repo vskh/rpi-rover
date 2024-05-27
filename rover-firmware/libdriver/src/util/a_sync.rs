@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use tokio::task::spawn_blocking;
 
-use crate::api::{AsyncLooker, AsyncMover, AsyncSensor, Looker, Mover, Sensor};
+use crate::api::{AsyncLooker, AsyncMover, AsyncSensor, Looker, Mover, MoveType, Sensor};
 use std::sync::{Arc, Mutex};
 
 impl<T> From<T> for AsyncRover<T>
@@ -64,6 +64,14 @@ where
         let mover_ref = Arc::clone(&self.0);
 
         spawn_blocking(move || mover_ref.lock().unwrap().spin_left(speed))
+            .await
+            .expect("Async wrapper error")
+    }
+
+    async fn get_move_type(&self) -> Result<MoveType, Self::Error> {
+        let mover_ref = Arc::clone(&self.0);
+
+        spawn_blocking(move || mover_ref.lock().unwrap().get_move_type())
             .await
             .expect("Async wrapper error")
     }
