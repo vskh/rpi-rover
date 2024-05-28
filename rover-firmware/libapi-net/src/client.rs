@@ -10,7 +10,7 @@ use async_trait::async_trait;
 use libdriver::api::{AsyncLooker, AsyncMover, AsyncSensor, MoveType};
 
 use crate::contract::data::{
-    LookData, MoveData, ProtocolMessage, SenseRequestData, SenseResponseData,
+    LookData, ProtocolMessage, SenseRequestData, SenseResponseData,
     StatusResponseData,
 };
 use crate::{Error, Result};
@@ -101,48 +101,47 @@ impl AsyncMover for Client {
     type Error = Error;
 
     async fn stop(&mut self) -> Result<()> {
-        let msg = ProtocolMessage::MoveRequest(MoveData {
-            move_type: MoveType::Forward,
-            speed: 0,
-        });
+        let msg = ProtocolMessage::MoveRequest(MoveType::None);
 
         self.exchange(msg, Self::process_status).await
     }
 
     async fn move_forward(&mut self, speed: u8) -> Result<()> {
-        let msg = ProtocolMessage::MoveRequest(MoveData {
-            move_type: MoveType::Forward,
-            speed,
-        });
+        let msg = ProtocolMessage::MoveRequest(MoveType::Forward(speed));
 
         self.exchange(msg, Self::process_status).await
     }
 
     async fn move_backward(&mut self, speed: u8) -> Result<()> {
-        let msg = ProtocolMessage::MoveRequest(MoveData {
-            move_type: MoveType::Backward,
-            speed,
-        });
+        let msg = ProtocolMessage::MoveRequest(MoveType::Backward(speed));
 
         self.exchange(msg, Self::process_status).await
     }
 
     async fn spin_right(&mut self, speed: u8) -> Result<()> {
-        let msg = ProtocolMessage::MoveRequest(MoveData {
-            move_type: MoveType::SpinCW,
-            speed,
-        });
+        let msg = ProtocolMessage::MoveRequest(MoveType::SpinCW(speed));
 
         self.exchange(msg, Self::process_status).await
     }
 
     async fn spin_left(&mut self, speed: u8) -> Result<()> {
-        let msg = ProtocolMessage::MoveRequest(MoveData {
-            move_type: MoveType::SpinCCW,
-            speed,
-        });
+        let msg = ProtocolMessage::MoveRequest(MoveType::SpinCCW(speed));
 
         self.exchange(msg, Self::process_status).await
+    }
+
+    async fn get_move_type(&self) -> std::result::Result<MoveType, Self::Error> {
+        let msg = ProtocolMessage::MoveDirectionRequest;
+
+        let process_move_direction_response = |message| {
+            match message {
+                ProtocolMessage::MoveDirectionResponse(move_type) => Either::Left(Ok(move_type)),
+                ProtocolMessage::StatusResponse(StatusResponseData::Error(e)) => Either::Left(Err(Error::Server(e))),
+                _ => Either::Right(message)
+            }
+        };
+
+        self.exchange(msg, process_move_direction_response).await
     }
 }
 

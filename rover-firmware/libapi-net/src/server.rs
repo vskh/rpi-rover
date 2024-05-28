@@ -7,9 +7,7 @@ use tokio_util::codec::Decoder;
 use libdriver::api::{AsyncLooker, AsyncMover, AsyncSensor, MoveType};
 
 use crate::{Error, Result};
-use crate::contract::data::{
-    LookData, ProtocolMessage, SenseRequestData, SenseResponseData, StatusResponseData,
-};
+use crate::contract::data::{LookData, ProtocolMessage, SenseRequestData, SenseResponseData, StatusResponseData};
 
 pub struct Server<TMover, TLooker, TSensor>
 where
@@ -123,15 +121,16 @@ where
             match response {
                 Ok(message) => {
                     match &message {
-                        ProtocolMessage::MoveRequest(r) => {
-                            trace!("[{}] Processing move request: {:#?}", peer_address, r);
+                        ProtocolMessage::MoveRequest(move_type) => {
+                            trace!("[{}] Processing move request: {:#?}", peer_address, move_type);
 
                             if let Some(ref mut mover) = self.mover {
-                                let opresult = match r.move_type {
-                                    MoveType::Forward => mover.move_forward(r.speed).await,
-                                    MoveType::Backward => mover.move_backward(r.speed).await,
-                                    MoveType::SpinCW => mover.spin_right(r.speed).await,
-                                    MoveType::SpinCCW => mover.spin_left(r.speed).await,
+                                let opresult = match move_type {
+                                    MoveType::Forward(ref speed) => mover.move_forward(*speed).await,
+                                    MoveType::Backward(ref speed) => mover.move_backward(*speed).await,
+                                    MoveType::SpinCW(ref speed) => mover.spin_right(*speed).await,
+                                    MoveType::SpinCCW(ref speed) => mover.spin_left(*speed).await,
+                                    MoveType::None => mover.stop().await
                                 };
 
                                 channel
@@ -145,6 +144,28 @@ where
                                         "Unsupported operation.".to_owned(),
                                     )))
                                     .await?;
+                            }
+                        }
+                        ProtocolMessage::MoveDirectionRequest => {
+                            trace!("[{}] Processing move direction request", peer_address);
+
+                            if let Some(ref mut mover) = self.mover {
+                                let response = match mover.get_move_type().await {
+                                    Ok(move_type) => ProtocolMessage::MoveDirectionResponse(move_type),
+                                    Err(e) => ProtocolMessage::StatusResponse(StatusResponseData::Error(e.to_string()))
+                                };
+
+                                channel
+                                    .send(response)
+                                    .await?;
+                            } else {
+                                warn!("[{}] Requested operation is not implemented.", peer_address);
+
+                                channel
+                                    .send(ProtocolMessage::StatusResponse(StatusResponseData::Error(
+                                        "Unsupported operation.".to_owned(),
+                                    )))
+                                    .await?
                             }
                         }
                         ProtocolMessage::LookRequest(r) => {
