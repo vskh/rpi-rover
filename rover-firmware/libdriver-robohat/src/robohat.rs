@@ -106,7 +106,7 @@ impl RobohatRover {
     }
 
     fn set_motor_speed(motor: &mut (SoftPwm, SoftPwm), speed: u8, forward: bool) -> Result<()> {
-        let frequency = 100_f32;
+        let frequency = 10_f32;
         let duty_cycle = speed as f32 / 255.0;
 
         if speed == 0 {
