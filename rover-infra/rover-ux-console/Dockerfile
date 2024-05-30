@@ -5,5 +5,5 @@ ARG TARGET_PLATFORM=arm-unknown-linux-gnueabihf
 COPY ./app /app
 
 WORKDIR /app
-ENTRYPOINT ["/app/console-ux", "--remote", "rover-api-net:5757"]
+ENTRYPOINT ["/app/ux-console", "--remote", "rover-api-net:5757"]
 # end
