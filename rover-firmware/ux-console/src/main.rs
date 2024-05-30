@@ -13,7 +13,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .action(ArgAction::SetTrue),
         )
         .arg(
-            arg!(address: -r --remote <ADDR> "Enable remote mode (if connecting through net API)")
+            arg!(remote: -r --remote <ADDR> "Enable remote mode (if connecting through net API)")
                 .value_parser(value_parser!(String)),
         )
         .group(
