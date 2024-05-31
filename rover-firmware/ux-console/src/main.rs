@@ -9,21 +9,21 @@ use libux_console::controller::RideController;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opts = command!()
         .arg(
-            arg!(local: -l --local "Enable local mode (if running directly on the rover)")
+            arg!(-l --local "Enable local mode (if running directly on the rover)")
                 .action(ArgAction::SetTrue),
         )
         .arg(
-            arg!(remote: -r --remote <ADDR> "Enable remote mode (if connecting through net API)")
+            arg!(address: -r --remote <ADDR> "Enable remote mode (if connecting through net API)")
                 .value_parser(value_parser!(String)),
         )
         .group(
             ArgGroup::new("mode")
-                .args(["local", "remote"])
+                .args(["local", "address"])
                 .required(true),
         )
         .get_matches();
 
-    if opts.contains_id("local") {
+    if opts.get_flag("local") {
         let async_rover: AsyncRover<RobohatRover> = RobohatRover::new()?.into();
         RideController::new(async_rover)?.run().await?
     } else {
