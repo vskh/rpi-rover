@@ -32,6 +32,8 @@ services:
 
   rover-api-net:
     image: ${REPO_PREFIX}rover-api-net:${TAG}
+    ports:
+      - 5757:5757
     devices:
       - "/dev/gpiomem:/dev/gpiomem"
       - "/dev/gpiochip0:/dev/gpiochip0"
