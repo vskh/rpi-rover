@@ -117,6 +117,8 @@ where
 
         self.reset().await?;
 
+        trace!("Ready to process protocol messages.");
+
         while let Some(response) = channel.next().await {
             match response {
                 Ok(message) => {
